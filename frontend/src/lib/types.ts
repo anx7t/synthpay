@@ -80,6 +80,8 @@ export interface ReleasePaymentInput {
   senderSecret: string;
   receiverPublicKey: string;
   amount: string;
+  /** Links the payment to a task so the backend marks it paid and stores tx_hash. */
+  taskId?: string;
 }
 
 export interface PaymentResult {

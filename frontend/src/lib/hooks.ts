@@ -196,6 +196,7 @@ export function useReleasePayment() {
         senderSecret,
         receiverPublicKey: task.agentPublicKey,
         amount: String(task.reward),
+        taskId: task.id,
       });
     },
     (vars) => `Payment released · ${vars.task.reward} XLM`,

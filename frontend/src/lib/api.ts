@@ -27,7 +27,8 @@ import {
  *   PATCH  /api/tasks/:id/assign     { agentPublicKey }                 → { success, task }
  *   PATCH  /api/tasks/:id/submit     { proofUrl }                       → { success, task }
  *   PATCH  /api/tasks/:id/verify     —                                  → { success, task, message }
- *   POST   /api/payments/release     { senderSecret, receiverPublicKey, amount } → { success, txHash }
+ *   POST   /api/payments/release     { senderSecret, receiverPublicKey, amount, taskId? }
+ *                                                                       → { success, txHash, task? }
  *   GET    /api/payments/balance/:publicKey                             → { success, balances }
  */
 
@@ -93,6 +94,8 @@ function num(...vals: unknown[]): number {
 
 function normalizeStatus(raw: unknown): TaskStatus {
   const s = String(raw ?? "open").toLowerCase();
+  // "paying" = backend has locked a verified task while its payment is in flight
+  if (s === "paying") return "verified";
   return (TASK_STATUSES as readonly string[]).includes(s) ? (s as TaskStatus) : "open";
 }
 
@@ -224,6 +227,7 @@ export const api = {
       senderSecret: input.senderSecret,
       receiverPublicKey: input.receiverPublicKey,
       amount: input.amount,
+      ...(input.taskId ? { taskId: input.taskId } : {}),
     });
     ensureSuccess(data);
     return { txHash: str(data.txHash) };
