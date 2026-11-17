@@ -14,14 +14,20 @@ const STEP_COPY: Record<TaskStatus, string> = {
   paid: "Payout settled on Stellar",
 };
 
-/** Illustrative walkthrough of a task moving through its lifecycle. */
-export function LifecyclePreview() {
+/** Cycles 0..5 (5 = holding on "paid") — shared so other UI can stay in sync. */
+export function useLifecycleStep(intervalMs = 1700) {
   const [step, setStep] = useState(0);
-
   useEffect(() => {
-    const id = setInterval(() => setStep((s) => (s + 1) % (TASK_STATUSES.length + 1)), 1700);
+    const id = setInterval(() => setStep((s) => (s + 1) % (TASK_STATUSES.length + 1)), intervalMs);
     return () => clearInterval(id);
-  }, []);
+  }, [intervalMs]);
+  return step;
+}
+
+/** Illustrative walkthrough of a task moving through its lifecycle. */
+export function LifecyclePreview({ step: controlled }: { step?: number }) {
+  const internal = useLifecycleStep();
+  const step = controlled ?? internal;
 
   const current = Math.min(step, TASK_STATUSES.length - 1);
   const status = TASK_STATUSES[current];
