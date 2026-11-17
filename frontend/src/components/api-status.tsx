@@ -1,13 +1,13 @@
 "use client";
 
 import { useHealth } from "@/lib/hooks";
-import { API_BASE_URL } from "@/lib/api";
+import { API_BASE_URL, API_URL_MISSING } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export function ApiStatus({ compact = false }: { compact?: boolean }) {
   const { data, isSuccess, isError, isLoading } = useHealth();
   const state = isLoading ? "checking" : isSuccess ? "online" : isError ? "offline" : "checking";
-  const host = API_BASE_URL.replace(/^https?:\/\//, "");
+  const host = API_URL_MISSING ? "NEXT_PUBLIC_API_URL not set" : API_BASE_URL.replace(/^https?:\/\//, "");
 
   return (
     <div
@@ -33,7 +33,13 @@ export function ApiStatus({ compact = false }: { compact?: boolean }) {
       {!compact && (
         <div className="min-w-0 leading-tight">
           <p className="text-xs font-medium text-cloud/80">
-            {state === "online" ? "API online" : state === "offline" ? "API unreachable" : "Checking API…"}
+            {state === "online"
+              ? "API online"
+              : API_URL_MISSING
+                ? "API not configured"
+                : state === "offline"
+                  ? "API unreachable"
+                  : "Checking API…"}
           </p>
           <p className="truncate font-mono text-[10.5px] text-cloud/40">{host}</p>
         </div>

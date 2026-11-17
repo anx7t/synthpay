@@ -32,12 +32,28 @@ import {
  *   GET    /api/payments/balance/:publicKey                             → { success, balances }
  */
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+/**
+ * Backend base URL, from NEXT_PUBLIC_API_URL (set it in Vercel → Project →
+ * Settings → Environment Variables). It's inlined at build time, so redeploy
+ * after changing it. Falls back to localhost only for `next dev`; a production
+ * build without it fails loudly instead of calling the visitor's own machine.
+ */
+const configuredUrl = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "");
+export const API_BASE_URL =
+  configuredUrl || (process.env.NODE_ENV === "development" ? "http://localhost:3001" : "");
+export const API_URL_MISSING = !API_BASE_URL;
+const MISSING_URL_MESSAGE =
+  "The SynthPay API URL isn't configured. Set NEXT_PUBLIC_API_URL and redeploy.";
 
 export const http = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: API_BASE_URL || undefined,
   timeout: 30_000,
   headers: { "Content-Type": "application/json" },
+});
+
+http.interceptors.request.use((config) => {
+  if (API_URL_MISSING) throw new Error(MISSING_URL_MESSAGE);
+  return config;
 });
 
 /* -------------------------------------------------------------------------- */
@@ -57,6 +73,7 @@ function messageFrom(data: unknown): string | null {
 }
 
 export function getErrorMessage(err: unknown): string {
+  if (API_URL_MISSING) return MISSING_URL_MESSAGE;
   if (axios.isAxiosError(err)) {
     if (!err.response) return `Can't reach the SynthPay API at ${API_BASE_URL}`;
     return messageFrom(err.response.data) ?? `Request failed (${err.response.status})`;
