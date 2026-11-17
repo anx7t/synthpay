@@ -5,15 +5,25 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { api, getErrorMessage } from "./api";
 import { useTrackedAgents } from "./agent-store";
-import type { CreateAgentInput, CreateTaskInput, Task } from "./types";
+import { recordPayment, usePaymentRecords, type PaymentRecord } from "./payment-store";
+import type { Agent, CreateAgentInput, CreateTaskInput, Task } from "./types";
 import { truncateKey } from "./utils";
 
 export const queryKeys = {
   health: ["health"] as const,
   tasks: ["tasks"] as const,
+  task: (id: string) => ["task", id] as const,
+  agents: ["agents"] as const,
   agentBalance: (pk: string) => ["agent-balance", pk] as const,
   wallet: (pk: string) => ["wallet-balance", pk] as const,
 };
+
+/** Overlay this browser's payment records onto tasks the API still reports as verified. */
+function withLocalPayment(task: Task, records: Record<string, PaymentRecord>): Task {
+  const rec = records[task.id];
+  if (!rec || task.status === "paid") return task;
+  return { ...task, status: "paid", txHash: task.txHash ?? rec.txHash, paidLocally: true };
+}
 
 /* ------------------------------- Queries -------------------------------- */
 
@@ -27,10 +37,33 @@ export function useHealth() {
 }
 
 export function useTasks() {
-  return useQuery({
+  const records = usePaymentRecords();
+  const query = useQuery({
     queryKey: queryKeys.tasks,
     queryFn: api.listTasks,
     refetchInterval: 15_000,
+  });
+  const data = useMemo(() => query.data?.map((t) => withLocalPayment(t, records)), [query.data, records]);
+  return { ...query, data };
+}
+
+export function useTask(id: string) {
+  const records = usePaymentRecords();
+  const query = useQuery({
+    queryKey: queryKeys.task(id),
+    queryFn: () => api.getTask(id),
+    enabled: !!id,
+    refetchInterval: 15_000,
+  });
+  const data = useMemo(() => (query.data ? withLocalPayment(query.data, records) : undefined), [query.data, records]);
+  return { ...query, data };
+}
+
+export function useAgents() {
+  return useQuery({
+    queryKey: queryKeys.agents,
+    queryFn: api.listAgents,
+    refetchInterval: 30_000,
   });
 }
 
@@ -53,14 +86,24 @@ export function useWalletBalance(publicKey: string | null) {
   });
 }
 
-/** Agents known to this browser plus any agent keys seen on tasks. */
+/**
+ * Every agent we know about:
+ *  - `registered`: from GET /api/agents (source of truth)
+ *  - `tracked`: added in this browser but not (yet) returned by the API
+ *  - `discovered`: keys seen on tasks that match neither
+ */
 export function useKnownAgents(tasks: Task[] | undefined) {
   const tracked = useTrackedAgents();
+  const { data: registered = [], isLoading, isError, error } = useAgents();
+
   return useMemo(() => {
-    const trackedKeys = new Set(tracked.map((a) => a.publicKey));
+    const registeredKeys = new Set(registered.map((a) => a.publicKey));
+    const localOnly = tracked.filter((a) => !registeredKeys.has(a.publicKey));
+    const knownKeys = new Set([...registeredKeys, ...localOnly.map((a) => a.publicKey)]);
+
     const seen = new Map<string, number>();
     for (const t of tasks ?? []) {
-      if (t.agentPublicKey && !trackedKeys.has(t.agentPublicKey)) {
+      if (t.agentPublicKey && !knownKeys.has(t.agentPublicKey)) {
         seen.set(t.agentPublicKey, (seen.get(t.agentPublicKey) ?? 0) + 1);
       }
     }
@@ -69,28 +112,41 @@ export function useKnownAgents(tasks: Task[] | undefined) {
         .filter((t) => t.agentPublicKey && (t.status === "assigned" || t.status === "submitted"))
         .map((t) => t.agentPublicKey!),
     );
+
+    /** One list for pickers: registered first, then local-only. */
+    const all: Agent[] = [
+      ...registered,
+      ...localOnly.map((a) => ({ publicKey: a.publicKey, name: a.name, agentType: a.type, createdAt: a.createdAt })),
+    ];
+
     return {
-      tracked,
+      registered,
+      tracked: localOnly,
       discovered: Array.from(seen, ([publicKey, taskCount]) => ({ publicKey, taskCount })),
-      allKeys: [...trackedKeys, ...seen.keys()],
+      all,
       activeKeys,
+      isLoading,
+      isError,
+      error,
     };
-  }, [tracked, tasks]);
+  }, [registered, tracked, tasks, isLoading, isError, error]);
 }
 
 /* ------------------------------ Mutations ------------------------------- */
 
-function useTaskMutation<TVars>(
-  fn: (vars: TVars) => Promise<unknown>,
-  success: (vars: TVars, data: unknown) => string,
-  opts?: { refreshBalances?: boolean },
+function useTaskMutation<TVars, TData>(
+  fn: (vars: TVars) => Promise<TData>,
+  success: (vars: TVars, data: TData) => string,
+  opts?: { refreshBalances?: boolean; onSuccess?: (vars: TVars, data: TData) => void },
 ) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: fn,
     onSuccess: (data, vars) => {
+      opts?.onSuccess?.(vars, data);
       toast.success(success(vars, data));
       qc.invalidateQueries({ queryKey: queryKeys.tasks });
+      qc.invalidateQueries({ queryKey: ["task"] });
       if (opts?.refreshBalances) {
         qc.invalidateQueries({ queryKey: ["agent-balance"] });
         qc.invalidateQueries({ queryKey: ["wallet-balance"] });
@@ -116,29 +172,51 @@ export function useAssignTask() {
 
 export function useSubmitTask() {
   return useTaskMutation(
-    ({ id, submission }: { id: string; submission: string }) => api.submitTask(id, submission),
-    () => "Work submitted for verification",
+    ({ id, proofUrl }: { id: string; proofUrl: string }) => api.submitTask(id, proofUrl),
+    () => "Proof submitted for verification",
   );
 }
 
 export function useVerifyTask() {
   return useTaskMutation(
     ({ id }: { id: string }) => api.verifyTask(id),
-    () => "Task verified — ready for payout",
+    (_, res) => res.message ?? "Task verified — ready for payout",
   );
 }
 
+/**
+ * Releases the reward for a verified task: the employer's secret signs a
+ * payment of `task.reward` to `task.agentPublicKey`.
+ */
 export function useReleasePayment() {
   return useTaskMutation(
-    ({ taskId }: { taskId: string; reward: number }) => api.releasePayment(taskId),
-    (vars) => `Payment released · ${vars.reward} XLM`,
-    { refreshBalances: true },
+    ({ task, senderSecret }: { task: Task; senderSecret: string }) => {
+      if (!task.agentPublicKey) throw new Error("This task has no assigned agent to pay");
+      return api.releasePayment({
+        senderSecret,
+        receiverPublicKey: task.agentPublicKey,
+        amount: String(task.reward),
+      });
+    },
+    (vars) => `Payment released · ${vars.task.reward} XLM`,
+    {
+      refreshBalances: true,
+      onSuccess: ({ task }, res) =>
+        recordPayment(task.id, {
+          txHash: res.txHash,
+          amount: String(task.reward),
+          receiverPublicKey: task.agentPublicKey!,
+          paidAt: new Date().toISOString(),
+        }),
+    },
   );
 }
 
 export function useCreateAgent() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateAgentInput) => api.createAgent(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.agents }),
     onError: (err) => toast.error(getErrorMessage(err)),
   });
 }

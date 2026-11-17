@@ -5,13 +5,13 @@ import { API_BASE_URL } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export function ApiStatus({ compact = false }: { compact?: boolean }) {
-  const { isSuccess, isError, isLoading } = useHealth();
+  const { data, isSuccess, isError, isLoading } = useHealth();
   const state = isLoading ? "checking" : isSuccess ? "online" : isError ? "offline" : "checking";
   const host = API_BASE_URL.replace(/^https?:\/\//, "");
 
   return (
     <div
-      title={`Backend: ${API_BASE_URL}`}
+      title={`${data?.project ? `${data.project} · ` : ""}${API_BASE_URL}`}
       className={cn(
         "flex items-center gap-2.5 rounded-lg",
         !compact && "border border-cloud/10 bg-cloud/[0.03] px-3 py-2.5",

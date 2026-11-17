@@ -3,23 +3,39 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Bot, Eye, Plus } from "lucide-react";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
 import { AgentCard } from "@/components/agent-card";
-import { EmptyState } from "@/components/states";
+import { EmptyState, ErrorState } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { trackAgent } from "@/lib/agent-store";
-import { useKnownAgents, useTasks } from "@/lib/hooks";
+import { getErrorMessage } from "@/lib/api";
+import { useAgents, useKnownAgents, useTasks } from "@/lib/hooks";
 import { isStellarPublicKey, timeAgo } from "@/lib/utils";
-import { toast } from "sonner";
 
 export default function AgentsPage() {
   const { data: tasks } = useTasks();
-  const { tracked, discovered, activeKeys } = useKnownAgents(tasks);
+  const { registered, tracked, discovered, activeKeys, isLoading, isError, error } = useKnownAgents(tasks);
+  const { refetch } = useAgents();
   const [key, setKey] = useState("");
   const [name, setName] = useState("");
 
   const tasksFor = (pk: string) => (tasks ?? []).filter((t) => t.agentPublicKey === pk);
+
+  function meta(pk: string, createdAt: string | null) {
+    if (activeKeys.has(pk)) {
+      return (
+        <span className="inline-flex items-center gap-1.5 text-sky-300">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-sky-400" /> Working
+        </span>
+      );
+    }
+    const ts = tasksFor(pk);
+    if (ts.length > 0) return `${ts.filter((t) => t.status === "paid").length}/${ts.length} tasks paid`;
+    const ago = timeAgo(createdAt);
+    return ago ? `Created ${ago}` : "No tasks yet";
+  }
 
   function onTrack(e: React.FormEvent) {
     e.preventDefault();
@@ -33,12 +49,14 @@ export default function AgentsPage() {
     setName("");
   }
 
+  const empty = !isLoading && registered.length === 0 && tracked.length === 0 && discovered.length === 0;
+
   return (
     <>
       <PageHeader
         eyebrow="Roster"
         title="Agents"
-        description="Each agent owns a Stellar wallet. Balances are fetched live from the network."
+        description="Every agent registered with SynthPay owns a Stellar wallet. Balances are fetched live."
         actions={
           <Button asChild>
             <Link href="/agents/create">
@@ -50,14 +68,9 @@ export default function AgentsPage() {
 
       <form onSubmit={onTrack} className="surface mb-8 flex flex-col gap-3 rounded-2xl p-4 sm:flex-row sm:items-center">
         <div className="flex items-center gap-2 px-1 text-sm text-cloud/60 sm:w-40 sm:shrink-0">
-          <Eye className="h-4 w-4 text-sun" /> Track an agent
+          <Eye className="h-4 w-4 text-sun" /> Track a wallet
         </div>
-        <Input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Name (optional)"
-          className="h-10 sm:w-48"
-        />
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name (optional)" className="h-10 sm:w-48" />
         <Input
           value={key}
           onChange={(e) => setKey(e.target.value)}
@@ -71,11 +84,26 @@ export default function AgentsPage() {
         </Button>
       </form>
 
-      {tracked.length === 0 && discovered.length === 0 ? (
+      {isError && (
+        <ErrorState
+          className="mb-8"
+          title="Couldn't load agents"
+          message={getErrorMessage(error)}
+          onRetry={() => refetch()}
+        />
+      )}
+
+      {isLoading ? (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="skeleton h-44 rounded-2xl" />
+          ))}
+        </div>
+      ) : empty ? (
         <EmptyState
           icon={<Bot />}
-          title="Your roster is empty"
-          description="Create an agent to generate a Stellar keypair, or track an existing agent by its public key."
+          title="No agents yet"
+          description="Create an agent to generate a Stellar keypair and register it with SynthPay."
           action={
             <Button asChild>
               <Link href="/agents/create">
@@ -86,36 +114,40 @@ export default function AgentsPage() {
         />
       ) : (
         <div className="flex flex-col gap-10">
+          {registered.length > 0 && (
+            <section>
+              <div className="mb-4 flex items-baseline justify-between">
+                <h2 className="font-display text-lg font-semibold tracking-tight">Registered agents</h2>
+                <span className="font-mono text-xs text-cloud/40">{registered.length}</span>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {registered.map((a) => (
+                  <AgentCard
+                    key={a.publicKey}
+                    name={a.name}
+                    type={a.agentType}
+                    publicKey={a.publicKey}
+                    removable={false}
+                    meta={meta(a.publicKey, a.createdAt)}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
           {tracked.length > 0 && (
             <section>
               <div className="mb-4 flex items-baseline justify-between">
-                <h2 className="font-display text-lg font-semibold tracking-tight">Your agents</h2>
+                <div>
+                  <h2 className="font-display text-lg font-semibold tracking-tight">Tracked wallets</h2>
+                  <p className="text-xs text-cloud/45">Added in this browser; not returned by the API</p>
+                </div>
                 <span className="font-mono text-xs text-cloud/40">{tracked.length}</span>
               </div>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {tracked.map((a) => {
-                  const ts = tasksFor(a.publicKey);
-                  const paid = ts.filter((t) => t.status === "paid").length;
-                  return (
-                    <AgentCard
-                      key={a.publicKey}
-                      name={a.name}
-                      type={a.type}
-                      publicKey={a.publicKey}
-                      meta={
-                        activeKeys.has(a.publicKey) ? (
-                          <span className="inline-flex items-center gap-1.5 text-sky-300">
-                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-sky-400" /> Working
-                          </span>
-                        ) : ts.length > 0 ? (
-                          `${paid}/${ts.length} tasks paid`
-                        ) : (
-                          `Added ${timeAgo(a.createdAt) ?? "recently"}`
-                        )
-                      }
-                    />
-                  );
-                })}
+                {tracked.map((a) => (
+                  <AgentCard key={a.publicKey} name={a.name} type={a.type} publicKey={a.publicKey} meta={meta(a.publicKey, a.createdAt)} />
+                ))}
               </div>
             </section>
           )}
@@ -125,7 +157,7 @@ export default function AgentsPage() {
               <div className="mb-4 flex items-baseline justify-between">
                 <div>
                   <h2 className="font-display text-lg font-semibold tracking-tight">Seen on tasks</h2>
-                  <p className="text-xs text-cloud/45">Agents assigned to tasks that aren&apos;t in your roster</p>
+                  <p className="text-xs text-cloud/45">Assigned to tasks but not registered</p>
                 </div>
                 <span className="font-mono text-xs text-cloud/40">{discovered.length}</span>
               </div>
@@ -137,14 +169,7 @@ export default function AgentsPage() {
                     type="external"
                     publicKey={a.publicKey}
                     removable={false}
-                    meta={
-                      <button
-                        className="text-sun hover:underline"
-                        onClick={() => trackAgent({ publicKey: a.publicKey, name: "Unnamed agent", type: "external" })}
-                      >
-                        + Add to roster
-                      </button>
-                    }
+                    meta={`On ${a.taskCount} ${a.taskCount === 1 ? "task" : "tasks"}`}
                   />
                 ))}
               </div>

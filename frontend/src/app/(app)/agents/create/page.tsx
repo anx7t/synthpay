@@ -49,10 +49,10 @@ function CreateForm({ onCreated }: { onCreated: (a: CreatedAgent) => void }) {
     setTouched(true);
     if (!valid) return;
     create.mutate(
-      { name: name.trim(), type: type as AgentType },
+      { name: name.trim(), agentType: type as AgentType },
       {
         onSuccess: (agent) => {
-          trackAgent({ publicKey: agent.publicKey, name: agent.name, type: agent.type });
+          trackAgent({ publicKey: agent.publicKey, name: agent.name, type: agent.agentType });
           onCreated(agent);
         },
       },
@@ -155,7 +155,7 @@ function ResultCard({ agent, onReset }: { agent: CreatedAgent; onReset: () => vo
     const blob = new Blob(
       [
         JSON.stringify(
-          { name: agent.name, type: agent.type, publicKey: agent.publicKey, secretKey: agent.secretKey },
+          { name: agent.name, agentType: agent.agentType, publicKey: agent.publicKey, secretKey: agent.secretKey },
           null,
           2,
         ),
@@ -190,7 +190,7 @@ function ResultCard({ agent, onReset }: { agent: CreatedAgent; onReset: () => vo
           <AgentAvatar name={agent.name} publicKey={agent.publicKey} className="h-14 w-14 text-lg" />
           <div className="min-w-0">
             <h2 className="truncate font-display text-xl font-semibold tracking-tight">{agent.name}</h2>
-            <p className="text-sm text-cloud/50">{agentTypeLabel(agent.type)}</p>
+            <p className="text-sm text-cloud/50">{agentTypeLabel(agent.agentType)}</p>
           </div>
           <span className="ml-auto rounded-full bg-emerald-400/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-emerald-300">
             Active

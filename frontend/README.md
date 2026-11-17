@@ -22,23 +22,29 @@ npm run dev                  # http://localhost:3000
 
 ## API contract
 
-All calls live in `src/lib/api.ts`, and that file is the only place to change if the backend differs.
-Responses are normalized, so wrapped payloads (`{ data }`, `{ task }`, `{ tasks }`) and common
-field aliases (`_id`, `rewardAmount`, Horizon-style `balances[]`, …) are handled.
+All calls live in `src/lib/api.ts` and follow the backend reference exactly:
 
-Request bodies sent:
+| Method | Endpoint                           | Body                                                                | Used on                         |
+| ------ | ---------------------------------- | ------------------------------------------------------------------- | ------------------------------- |
+| GET    | `/health`                          | —                                                                   | API status indicator            |
+| POST   | `/api/agents/create`               | `{ name, agentType }`                                               | `/agents/create`                |
+| GET    | `/api/agents`                      | —                                                                   | `/agents`, dashboard, pickers   |
+| GET    | `/api/agents/:publicKey/balance`   | —                                                                   | Agent cards                     |
+| POST   | `/api/tasks/create`                | `{ title, description, reward, employerPublicKey, agentPublicKey? }` | `/tasks/create`                 |
+| GET    | `/api/tasks`                       | —                                                                   | `/tasks`, dashboard             |
+| GET    | `/api/tasks/:id`                   | —                                                                   | `/tasks/[id]`                   |
+| PATCH  | `/api/tasks/:id/assign`            | `{ agentPublicKey }`                                                | Assign dialog                   |
+| PATCH  | `/api/tasks/:id/submit`            | `{ proofUrl }`                                                      | Submit-proof dialog             |
+| PATCH  | `/api/tasks/:id/verify`            | —                                                                   | Verify button (shows `message`) |
+| POST   | `/api/payments/release`            | `{ senderSecret, receiverPublicKey, amount }`                       | Release dialog                  |
+| GET    | `/api/payments/balance/:publicKey` | —                                                                   | `/wallet`                       |
 
-| Endpoint                         | Body                                                  |
-| -------------------------------- | ----------------------------------------------------- |
-| `POST /api/agents/create`        | `{ name, type }`                                      |
-| `POST /api/tasks/create`         | `{ title, description, reward, employerPublicKey }`   |
-| `PATCH /api/tasks/:id/assign`    | `{ agentPublicKey }`                                  |
-| `PATCH /api/tasks/:id/submit`    | `{ submission }`                                      |
-| `PATCH /api/tasks/:id/verify`    | `{ approved: true }`                                  |
-| `POST /api/payments/release`     | `{ taskId }`                                          |
+Responses shaped `{ success: false, error }` are treated as errors even on a 2xx.
 
-The backend has no "list agents" endpoint, so the agent roster comes from two places: agents
-created in this browser (public key, name and type, kept in `localStorage`) and agent keys that
-appear on tasks. Secret keys are never stored.
+**Releasing payment.** The release dialog asks for the employer's secret key, sends it once
+with `receiverPublicKey = task.agentPublicKey` and `amount = String(task.reward)`, and never
+stores it. Because the release endpoint takes no task id, the API can't mark the task paid;
+the browser records `taskId → txHash` locally so the task shows as paid (labelled "local")
+and can't be paid twice from that browser.
 
 The backend must allow CORS from `http://localhost:3000`.

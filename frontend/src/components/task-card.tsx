@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { StatusBadge } from "./status-badge";
 import { KeyDisplay } from "./key-display";
@@ -45,7 +46,11 @@ export function TaskCard({ task }: { task: Task }) {
       </div>
 
       <div className="mt-4 min-w-0">
-        <h3 className="font-display text-lg font-semibold leading-snug tracking-tight">{task.title}</h3>
+        <h3 className="font-display text-lg font-semibold leading-snug tracking-tight">
+          <Link href={`/tasks/${encodeURIComponent(task.id)}`} className="transition hover:text-sun">
+            {task.title}
+          </Link>
+        </h3>
         {task.description && (
           <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-cloud/55">{task.description}</p>
         )}
@@ -81,11 +86,19 @@ export function TaskCard({ task }: { task: Task }) {
         </div>
       </dl>
 
-      {task.submission && task.status !== "paid" && (
-        <div className="mt-4 rounded-lg border border-cloud/10 bg-graphite/60 p-3">
-          <p className="eyebrow mb-1">Submission</p>
-          <p className="line-clamp-3 break-words text-[13px] text-cloud/75">{task.submission}</p>
-        </div>
+      {task.proofUrl && (
+        <a
+          href={task.proofUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="group/proof mt-4 flex items-center gap-3 rounded-lg border border-cloud/10 bg-graphite/60 p-3 transition hover:border-sun/40"
+        >
+          <span className="eyebrow shrink-0">Proof</span>
+          <span className="min-w-0 flex-1 truncate font-mono text-[12px] text-cloud/75 group-hover/proof:text-sun">
+            {task.proofUrl.replace(/^https?:\/\//, "")}
+          </span>
+          <ExternalLink className="h-3.5 w-3.5 shrink-0 text-cloud/40 group-hover/proof:text-sun" />
+        </a>
       )}
 
       <div className="flex-1" />
@@ -101,6 +114,11 @@ export function TaskCard({ task }: { task: Task }) {
               <span className="text-cloud/40">tx</span>
               <code className="truncate font-mono">{truncateKey(task.txHash, 8, 8)}</code>
               <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+              {task.paidLocally && (
+                <span title="Paid from this browser — the API still reports this task as verified" className="text-cloud/35">
+                  · local
+                </span>
+              )}
             </a>
           ) : (
             <span className="text-xs text-emerald-300">Settled on Stellar</span>

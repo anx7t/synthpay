@@ -17,13 +17,13 @@ import { cn, formatAmount, shortId, truncateKey } from "@/lib/utils";
 
 export default function DashboardPage() {
   const { data: tasks, isLoading, isError, error, refetch } = useTasks();
-  const { tracked, discovered, activeKeys } = useKnownAgents(tasks);
+  const { all: agents, registered, discovered, activeKeys } = useKnownAgents(tasks);
 
   const paid = (tasks ?? []).filter((t) => t.status === "paid");
   const totalPaid = paid.reduce((sum, t) => sum + t.reward, 0);
   const escrowed = (tasks ?? []).filter((t) => t.status !== "paid").reduce((sum, t) => sum + t.reward, 0);
   const needsAction = (tasks ?? []).filter((t) => t.status === "submitted" || t.status === "verified").length;
-  const agentCount = tracked.length + discovered.length;
+  const agentCount = agents.length + discovered.length;
 
   const recent = [...(tasks ?? [])]
     .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""))
@@ -86,7 +86,7 @@ export default function DashboardPage() {
           icon={Bot}
           value={activeKeys.size}
           loading={isLoading}
-          hint={`${agentCount} known · ${activeKeys.size} on a live task`}
+          hint={`${registered.length} registered · ${activeKeys.size} on a live task`}
         />
       </section>
 
@@ -221,7 +221,7 @@ export default function DashboardPage() {
             </div>
           ) : (
             <ul className="flex flex-col border-t border-cloud/10">
-              {tracked.slice(0, 5).map((a) => (
+              {agents.slice(0, 5).map((a) => (
                 <li key={a.publicKey} className="flex items-center gap-3 border-b border-cloud/[0.06] px-5 py-3.5 last:border-0">
                   <AgentAvatar name={a.name} publicKey={a.publicKey} className="h-9 w-9 rounded-lg text-xs" />
                   <div className="min-w-0 flex-1">
@@ -230,13 +230,13 @@ export default function DashboardPage() {
                       {activeKeys.has(a.publicKey) && <span className="h-1.5 w-1.5 rounded-full bg-sky-400" title="On a live task" />}
                     </p>
                     <p className="truncate font-mono text-[11px] text-cloud/40">
-                      {agentTypeLabel(a.type)} · {truncateKey(a.publicKey, 4, 4)}
+                      {agentTypeLabel(a.agentType)} · {truncateKey(a.publicKey, 4, 4)}
                     </p>
                   </div>
                   <BalanceReadout publicKey={a.publicKey} />
                 </li>
               ))}
-              {discovered.slice(0, Math.max(0, 5 - tracked.length)).map((a) => (
+              {discovered.slice(0, Math.max(0, 5 - agents.length)).map((a) => (
                 <li key={a.publicKey} className="flex items-center gap-3 border-b border-cloud/[0.06] px-5 py-3.5 last:border-0">
                   <AgentAvatar name="" publicKey={a.publicKey} className="h-9 w-9 rounded-lg text-xs" />
                   <div className="min-w-0 flex-1">

@@ -9,9 +9,12 @@ export interface Task {
   status: TaskStatus;
   employerPublicKey: string | null;
   agentPublicKey: string | null;
-  submission: string | null;
+  /** Proof of work submitted by the agent (PATCH /api/tasks/:id/submit). */
+  proofUrl: string | null;
   txHash: string | null;
   createdAt: string | null;
+  /** True when "paid" comes from this browser's payment record, not the API. */
+  paidLocally?: boolean;
 }
 
 export const AGENT_TYPES = [
@@ -33,16 +36,20 @@ export const AGENT_TYPES = [
 ] as const;
 export type AgentType = (typeof AGENT_TYPES)[number]["value"];
 
-/** Returned once by POST /api/agents/create. The secret is never persisted. */
-export interface CreatedAgent {
-  name: string;
-  type: string;
+/** An agent as returned by GET /api/agents. */
+export interface Agent {
   publicKey: string;
-  secretKey: string | null;
-  raw: unknown;
+  name: string;
+  agentType: string;
+  createdAt: string | null;
 }
 
-/** What we keep in the browser to remember agents (public data only). */
+/** Returned once by POST /api/agents/create. The secret is never persisted. */
+export interface CreatedAgent extends Agent {
+  secretKey: string | null;
+}
+
+/** Agents remembered by this browser (public data only). */
 export interface TrackedAgent {
   publicKey: string;
   name: string;
@@ -61,14 +68,25 @@ export interface CreateTaskInput {
   description: string;
   reward: number;
   employerPublicKey: string;
+  agentPublicKey?: string;
 }
 
 export interface CreateAgentInput {
   name: string;
-  type: AgentType;
+  agentType: AgentType;
+}
+
+export interface ReleasePaymentInput {
+  senderSecret: string;
+  receiverPublicKey: string;
+  amount: string;
 }
 
 export interface PaymentResult {
   txHash: string | null;
-  raw: unknown;
+}
+
+export interface Health {
+  status: string;
+  project: string | null;
 }

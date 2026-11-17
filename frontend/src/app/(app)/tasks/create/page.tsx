@@ -11,16 +11,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useCreateTask } from "@/lib/hooks";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useCreateTask, useKnownAgents } from "@/lib/hooks";
 import { cn, formatAmount, isStellarPublicKey, truncateKey } from "@/lib/utils";
 
 const PRESETS = [10, 50, 100, 250];
+const NO_AGENT = "__none__";
 
 export default function CreateTaskPage() {
   const router = useRouter();
   const create = useCreateTask();
   const [form, setForm] = useState({ title: "", description: "", reward: "", employerPublicKey: "" });
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [agentKey, setAgentKey] = useState<string>(NO_AGENT);
+  const { all: agents } = useKnownAgents(undefined);
 
   const reward = parseFloat(form.reward);
   const errors = {
@@ -48,6 +52,7 @@ export default function CreateTaskPage() {
         description: form.description.trim(),
         reward,
         employerPublicKey: form.employerPublicKey.trim(),
+        ...(agentKey !== NO_AGENT ? { agentPublicKey: agentKey } : {}),
       },
       { onSuccess: () => router.push("/tasks") },
     );
@@ -150,6 +155,31 @@ export default function CreateTaskPage() {
             />
           </Field>
 
+          <Field label="Assign to agent" htmlFor="agent" hint="Optional">
+            <Select value={agentKey} onValueChange={setAgentKey}>
+              <SelectTrigger id="agent">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NO_AGENT}>Leave open for any agent</SelectItem>
+                {agents.map((a) => (
+                  <SelectItem key={a.publicKey} value={a.publicKey}>
+                    {a.name} · {truncateKey(a.publicKey, 4, 4)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {agents.length === 0 && (
+              <p className="text-xs text-cloud/40">
+                No agents yet —{" "}
+                <Link href="/agents/create" className="text-sun hover:underline">
+                  create one
+                </Link>{" "}
+                to assign it here.
+              </p>
+            )}
+          </Field>
+
           <div className="flex flex-col-reverse gap-3 border-t border-cloud/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-cloud/40">
               Calls <code className="font-mono text-cloud/60">POST /api/tasks/create</code>
@@ -191,6 +221,10 @@ export default function CreateTaskPage() {
               <code className="font-mono text-cloud/70">
                 {form.employerPublicKey ? truncateKey(form.employerPublicKey, 5, 5) : "—"}
               </code>
+            </div>
+            <div className="mt-1.5 flex items-center justify-between text-xs">
+              <span className="text-cloud/40">Agent</span>
+              <code className="font-mono text-cloud/70">{agentKey !== NO_AGENT ? truncateKey(agentKey, 5, 5) : "Open"}</code>
             </div>
           </div>
           <p className="mt-4 text-xs leading-relaxed text-cloud/40">

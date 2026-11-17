@@ -1,14 +1,35 @@
 import axios from "axios";
 import {
   TASK_STATUSES,
+  type Agent,
   type Balance,
   type CreateAgentInput,
   type CreateTaskInput,
   type CreatedAgent,
+  type Health,
   type PaymentResult,
+  type ReleasePaymentInput,
   type Task,
   type TaskStatus,
 } from "./types";
+
+/*
+ * SynthPay API client. Every call matches the backend reference:
+ *
+ *   GET    /health                              → { status, project }
+ *   POST   /api/agents/create        { name, agentType }                → { success, agent, secretKey }
+ *   GET    /api/agents                                                  → { success, agents }
+ *   GET    /api/agents/:publicKey/balance                               → { success, balances }
+ *   POST   /api/tasks/create         { title, description, reward, employerPublicKey, agentPublicKey? }
+ *                                                                       → { success, task }
+ *   GET    /api/tasks                                                   → { success, tasks }
+ *   GET    /api/tasks/:id                                               → { success, task }
+ *   PATCH  /api/tasks/:id/assign     { agentPublicKey }                 → { success, task }
+ *   PATCH  /api/tasks/:id/submit     { proofUrl }                       → { success, task }
+ *   PATCH  /api/tasks/:id/verify     —                                  → { success, task, message }
+ *   POST   /api/payments/release     { senderSecret, receiverPublicKey, amount } → { success, txHash }
+ *   GET    /api/payments/balance/:publicKey                             → { success, balances }
+ */
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -19,51 +40,45 @@ export const http = axios.create({
 });
 
 /* -------------------------------------------------------------------------- */
-/*  Error handling                                                            */
-/* -------------------------------------------------------------------------- */
-
-export function getErrorMessage(err: unknown): string {
-  if (axios.isAxiosError(err)) {
-    if (!err.response) return `Can't reach the SynthPay API at ${API_BASE_URL}`;
-    const data = err.response.data as Record<string, unknown> | string | undefined;
-    if (typeof data === "string" && data.trim()) return data;
-    if (data && typeof data === "object") {
-      const msg = data.error ?? data.message ?? data.detail;
-      if (typeof msg === "string") return msg;
-      if (msg && typeof msg === "object" && "message" in msg) return String((msg as { message: unknown }).message);
-    }
-    return `Request failed (${err.response.status})`;
-  }
-  return err instanceof Error ? err.message : "Something went wrong";
-}
-
-/* -------------------------------------------------------------------------- */
-/*  Response normalization                                                    */
-/*  The backend may wrap payloads ({ data }, { success, task }) or use        */
-/*  slightly different field names. Everything is normalized here so the UI   */
-/*  only ever sees the types in ./types.                                      */
+/*  Errors                                                                    */
 /* -------------------------------------------------------------------------- */
 
 type Obj = Record<string, unknown>;
 const isObj = (v: unknown): v is Obj => !!v && typeof v === "object" && !Array.isArray(v);
 
-function unwrap(body: unknown, ...keys: string[]): unknown {
-  let cur = body;
-  if (isObj(cur) && "data" in cur && cur.data !== undefined) cur = cur.data;
-  for (const k of keys) {
-    if (isObj(cur) && k in cur && cur[k] !== undefined) return cur[k];
-  }
-  return cur;
+function messageFrom(data: unknown): string | null {
+  if (typeof data === "string" && data.trim()) return data;
+  if (!isObj(data)) return null;
+  const msg = data.error ?? data.message ?? data.detail;
+  if (typeof msg === "string") return msg;
+  if (isObj(msg) && typeof msg.message === "string") return msg.message;
+  return null;
 }
+
+export function getErrorMessage(err: unknown): string {
+  if (axios.isAxiosError(err)) {
+    if (!err.response) return `Can't reach the SynthPay API at ${API_BASE_URL}`;
+    return messageFrom(err.response.data) ?? `Request failed (${err.response.status})`;
+  }
+  return err instanceof Error ? err.message : "Something went wrong";
+}
+
+/** The API answers `{ success: false, error }` for failures — even with a 2xx. */
+function ensureSuccess<T>(data: T): T {
+  if (isObj(data) && data.success === false) {
+    throw new Error(messageFrom(data) ?? "The SynthPay API reported a failure");
+  }
+  return data;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Normalizers                                                               */
+/* -------------------------------------------------------------------------- */
 
 function str(...vals: unknown[]): string | null {
   for (const v of vals) {
     if (typeof v === "string" && v.trim()) return v;
     if (typeof v === "number") return String(v);
-    if (isObj(v)) {
-      const nested = str(v.publicKey, v.public_key, v.pk, v.id);
-      if (nested) return nested;
-    }
   }
   return null;
 }
@@ -78,68 +93,43 @@ function num(...vals: unknown[]): number {
 
 function normalizeStatus(raw: unknown): TaskStatus {
   const s = String(raw ?? "open").toLowerCase();
-  if ((TASK_STATUSES as readonly string[]).includes(s)) return s as TaskStatus;
-  if (s === "completed" || s === "complete" || s === "released") return "paid";
-  if (s === "approved") return "verified";
-  if (s === "in_progress" || s === "in-progress") return "assigned";
-  return "open";
+  return (TASK_STATUSES as readonly string[]).includes(s) ? (s as TaskStatus) : "open";
 }
 
 export function normalizeTask(raw: unknown): Task {
   const t = isObj(raw) ? raw : {};
   return {
-    id: str(t.id, t._id, t.taskId) ?? "unknown",
-    title: str(t.title, t.name) ?? "Untitled task",
+    id: str(t.id, t._id) ?? "unknown",
+    title: str(t.title) ?? "Untitled task",
     description: str(t.description) ?? "",
-    reward: num(t.reward, t.rewardAmount, t.reward_amount, t.amount),
+    reward: num(t.reward),
     status: normalizeStatus(t.status),
-    employerPublicKey: str(t.employerPublicKey, t.employer_public_key, t.employerPk, t.employer),
-    agentPublicKey: str(
-      t.agentPublicKey,
-      t.agent_public_key,
-      t.agentPk,
-      t.assignedAgent,
-      t.assignedTo,
-      t.assigned_to,
-      t.agent,
-    ),
-    submission: str(t.submission, t.result, t.output, t.work),
-    txHash: str(t.txHash, t.tx_hash, t.paymentTxHash, t.transactionHash, t.hash),
-    createdAt: str(t.createdAt, t.created_at),
+    employerPublicKey: str(t.employerPublicKey),
+    agentPublicKey: str(t.agentPublicKey),
+    proofUrl: str(t.proofUrl),
+    txHash: str(t.txHash),
+    createdAt: str(t.createdAt),
   };
 }
 
-export function normalizeBalances(body: unknown): Balance[] {
-  const b = unwrap(body, "balances");
-  const list = Array.isArray(b) ? b : null;
+export function normalizeAgent(raw: unknown): Agent {
+  const a = isObj(raw) ? raw : {};
+  return {
+    publicKey: str(a.publicKey) ?? "",
+    name: str(a.name) ?? "Unnamed agent",
+    agentType: str(a.agentType) ?? "agent",
+    createdAt: str(a.createdAt),
+  };
+}
 
-  if (list) {
-    return list.filter(isObj).map((x) => ({
-      asset:
-        x.asset_type === "native"
-          ? "XLM"
-          : str(x.asset_code, x.assetCode, x.asset, x.code, x.currency) ?? "UNKNOWN",
-      amount: num(x.balance, x.amount),
-      issuer: str(x.asset_issuer, x.issuer),
-    }));
-  }
-
-  if (isObj(b)) {
-    if ("balance" in b) {
-      const inner = b.balance;
-      if (Array.isArray(inner) || isObj(inner)) return normalizeBalances(inner);
-      return [{ asset: str(b.asset, b.asset_code) ?? "XLM", amount: num(inner), issuer: null }];
-    }
-    // Map form: { XLM: "100.5", USDC: "12" }
-    return Object.entries(b)
-      .filter(([k, v]) => !/key|account|address|id/i.test(k) && v !== null && v !== "" && Number.isFinite(Number(v)))
-      .map(([k, v]) => ({ asset: k.toUpperCase(), amount: Number(v), issuer: null }));
-  }
-
-  if (typeof b === "string" || typeof b === "number") {
-    return [{ asset: "XLM", amount: num(b), issuer: null }];
-  }
-  return [];
+/** `balances` is a Horizon-style list: [{ asset_type, asset_code?, asset_issuer?, balance }]. */
+export function normalizeBalances(list: unknown): Balance[] {
+  if (!Array.isArray(list)) return [];
+  return list.filter(isObj).map((x) => ({
+    asset: x.asset_type === "native" ? "XLM" : str(x.asset_code, x.asset) ?? "UNKNOWN",
+    amount: num(x.balance, x.amount),
+    issuer: str(x.asset_issuer, x.issuer),
+  }));
 }
 
 /* -------------------------------------------------------------------------- */
@@ -147,81 +137,94 @@ export function normalizeBalances(body: unknown): Balance[] {
 /* -------------------------------------------------------------------------- */
 
 export const api = {
-  /** GET /health */
-  async health(): Promise<{ ok: boolean; raw: unknown }> {
+  async health(): Promise<Health> {
     const { data } = await http.get("/health", { timeout: 5_000 });
-    return { ok: true, raw: data };
+    return { status: str(data?.status) ?? "ok", project: str(data?.project) };
   },
 
-  /** POST /api/agents/create */
   async createAgent(input: CreateAgentInput): Promise<CreatedAgent> {
-    const { data } = await http.post("/api/agents/create", { name: input.name, type: input.type });
-    const a = unwrap(data, "agent");
-    const o = isObj(a) ? a : {};
-    const keypair = isObj(o.keypair) ? o.keypair : {};
-    const publicKey = str(o.publicKey, o.public_key, o.pk, keypair.publicKey, keypair.public_key);
-    if (!publicKey) throw new Error("Agent was created but the API did not return a public key");
+    const { data } = await http.post("/api/agents/create", { name: input.name, agentType: input.agentType });
+    ensureSuccess(data);
+    const agent = normalizeAgent(data.agent);
+    if (!agent.publicKey) throw new Error("Agent was created but the API did not return a public key");
     return {
-      name: str(o.name) ?? input.name,
-      type: str(o.type, o.agentType) ?? input.type,
-      publicKey,
-      secretKey: str(o.secretKey, o.secret_key, o.secret, o.sk, keypair.secretKey, keypair.secret),
-      raw: data,
+      ...agent,
+      name: agent.name === "Unnamed agent" ? input.name : agent.name,
+      agentType: agent.agentType === "agent" ? input.agentType : agent.agentType,
+      // secretKey is returned at the top level, next to `agent`
+      secretKey: str(data.secretKey, isObj(data.agent) ? data.agent.secretKey : null),
     };
   },
 
-  /** GET /api/agents/:pk/balance */
+  async listAgents(): Promise<Agent[]> {
+    const { data } = await http.get("/api/agents");
+    ensureSuccess(data);
+    return Array.isArray(data.agents) ? data.agents.map(normalizeAgent).filter((a: Agent) => a.publicKey) : [];
+  },
+
   async getAgentBalance(publicKey: string): Promise<Balance[]> {
     const { data } = await http.get(`/api/agents/${encodeURIComponent(publicKey)}/balance`);
-    return normalizeBalances(data);
+    ensureSuccess(data);
+    return normalizeBalances(data.balances);
   },
 
-  /** POST /api/tasks/create */
   async createTask(input: CreateTaskInput): Promise<Task> {
-    const { data } = await http.post("/api/tasks/create", input);
-    return normalizeTask(unwrap(data, "task"));
+    const body: CreateTaskInput = {
+      title: input.title,
+      description: input.description,
+      reward: input.reward,
+      employerPublicKey: input.employerPublicKey,
+    };
+    if (input.agentPublicKey) body.agentPublicKey = input.agentPublicKey;
+    const { data } = await http.post("/api/tasks/create", body);
+    ensureSuccess(data);
+    return normalizeTask(data.task);
   },
 
-  /** GET /api/tasks */
   async listTasks(): Promise<Task[]> {
     const { data } = await http.get("/api/tasks");
-    const list = unwrap(data, "tasks");
-    return Array.isArray(list) ? list.map(normalizeTask) : [];
+    ensureSuccess(data);
+    return Array.isArray(data.tasks) ? data.tasks.map(normalizeTask) : [];
   },
 
-  /** PATCH /api/tasks/:id/assign */
+  async getTask(id: string): Promise<Task> {
+    const { data } = await http.get(`/api/tasks/${encodeURIComponent(id)}`);
+    ensureSuccess(data);
+    return normalizeTask(data.task);
+  },
+
   async assignTask(id: string, agentPublicKey: string): Promise<Task> {
     const { data } = await http.patch(`/api/tasks/${encodeURIComponent(id)}/assign`, { agentPublicKey });
-    return normalizeTask(unwrap(data, "task"));
+    ensureSuccess(data);
+    return normalizeTask(data.task);
   },
 
-  /** PATCH /api/tasks/:id/submit */
-  async submitTask(id: string, submission: string): Promise<Task> {
-    const { data } = await http.patch(`/api/tasks/${encodeURIComponent(id)}/submit`, { submission });
-    return normalizeTask(unwrap(data, "task"));
+  async submitTask(id: string, proofUrl: string): Promise<Task> {
+    const { data } = await http.patch(`/api/tasks/${encodeURIComponent(id)}/submit`, { proofUrl });
+    ensureSuccess(data);
+    return normalizeTask(data.task);
   },
 
-  /** PATCH /api/tasks/:id/verify */
-  async verifyTask(id: string): Promise<Task> {
-    const { data } = await http.patch(`/api/tasks/${encodeURIComponent(id)}/verify`, { approved: true });
-    return normalizeTask(unwrap(data, "task"));
+  async verifyTask(id: string): Promise<{ task: Task; message: string | null }> {
+    // No request body.
+    const { data } = await http.patch(`/api/tasks/${encodeURIComponent(id)}/verify`);
+    ensureSuccess(data);
+    return { task: normalizeTask(data.task), message: str(data.message) };
   },
 
-  /** POST /api/payments/release */
-  async releasePayment(taskId: string): Promise<PaymentResult> {
-    const { data } = await http.post("/api/payments/release", { taskId });
-    const p = unwrap(data, "payment", "result");
-    const o = isObj(p) ? p : {};
-    const task = isObj(o.task) ? o.task : {};
-    return {
-      txHash: str(o.txHash, o.tx_hash, o.hash, o.transactionHash, task.txHash),
-      raw: data,
-    };
+  async releasePayment(input: ReleasePaymentInput): Promise<PaymentResult> {
+    const { data } = await http.post("/api/payments/release", {
+      senderSecret: input.senderSecret,
+      receiverPublicKey: input.receiverPublicKey,
+      amount: input.amount,
+    });
+    ensureSuccess(data);
+    return { txHash: str(data.txHash) };
   },
 
-  /** GET /api/payments/balance/:pk */
   async getWalletBalance(publicKey: string): Promise<Balance[]> {
     const { data } = await http.get(`/api/payments/balance/${encodeURIComponent(publicKey)}`);
-    return normalizeBalances(data);
+    ensureSuccess(data);
+    return normalizeBalances(data.balances);
   },
 };
