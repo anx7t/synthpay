@@ -9,7 +9,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-sun text-graphite font-semibold shadow-[0_0_0_1px_rgba(255,201,40,0.4),0_8px_24px_-8px_rgba(255,201,40,0.55)] hover:bg-[#ffd451] hover:shadow-[0_0_0_1px_rgba(255,201,40,0.6),0_10px_32px_-8px_rgba(255,201,40,0.7)]",
+          "bg-sun text-graphite font-semibold hover:bg-[#ffd451]",
         outline:
           "border border-cloud/15 bg-cloud/[0.03] text-cloud hover:border-sun/60 hover:text-sun hover:bg-sun/[0.06]",
         ghost: "text-cloud/70 hover:text-sun hover:bg-cloud/[0.06]",

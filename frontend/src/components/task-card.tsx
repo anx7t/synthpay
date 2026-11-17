@@ -34,7 +34,6 @@ export function TaskCard({ task }: { task: Task }) {
     <article
       className={cn(
         "surface group flex h-full flex-col rounded-2xl p-5 transition-colors hover:border-cloud/20 hover:shadow-[0_30px_60px_-30px_rgba(0,0,0,0.8)]",
-        task.status === "submitted" && "border-sun/25",
       )}
     >
       <div className="flex items-center justify-between gap-3">
@@ -55,8 +54,8 @@ export function TaskCard({ task }: { task: Task }) {
       <div className="mt-5 flex items-end justify-between gap-4">
         <div>
           <p className="eyebrow mb-1">Reward</p>
-          <p className="num font-display text-2xl font-semibold tracking-tight text-sun">
-            {formatAmount(task.reward)} <span className="font-mono text-sm font-normal text-sun/70">XLM</span>
+          <p className="num font-display text-2xl font-semibold tracking-tight">
+            {formatAmount(task.reward)} <span className="font-mono text-sm font-normal text-cloud/45">XLM</span>
           </p>
         </div>
       </div>

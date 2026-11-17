@@ -158,8 +158,8 @@ export default function DashboardPage() {
                             {t.agentPublicKey ? truncateKey(t.agentPublicKey, 4, 4) : "—"}
                           </code>
                         </td>
-                        <td className="num px-3 py-3.5 text-right font-display font-semibold text-sun">
-                          {formatAmount(t.reward)} <span className="font-mono text-[11px] font-normal text-sun/60">XLM</span>
+                        <td className="num whitespace-nowrap px-3 py-3.5 text-right font-display font-semibold">
+                          {formatAmount(t.reward)} <span className="font-mono text-[11px] font-normal text-cloud/40">XLM</span>
                         </td>
                         <td className="px-6 py-3.5 text-right">
                           <TaskActions task={t} size="sm" />
@@ -175,8 +175,8 @@ export default function DashboardPage() {
                   <li key={t.id} className="flex flex-col gap-3 border-b border-cloud/[0.06] px-5 py-4 last:border-0">
                     <div className="flex items-start justify-between gap-3">
                       <p className="min-w-0 font-medium leading-snug">{t.title}</p>
-                      <p className="num shrink-0 font-display font-semibold text-sun">
-                        {formatAmount(t.reward)} <span className="font-mono text-[11px] font-normal text-sun/60">XLM</span>
+                      <p className="num shrink-0 font-display font-semibold">
+                        {formatAmount(t.reward)} <span className="font-mono text-[11px] font-normal text-cloud/40">XLM</span>
                       </p>
                     </div>
                     <div className="flex items-center justify-between gap-3">

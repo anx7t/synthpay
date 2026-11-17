@@ -29,8 +29,8 @@ export function LifecyclePreview() {
 
   return (
     <div className="relative">
-      <div className="absolute -inset-px rounded-[22px] bg-gradient-to-b from-sun/40 via-cloud/10 to-transparent" />
-      <div className="relative rounded-[21px] bg-[#1f2023]/95 p-5 shadow-[0_40px_120px_-30px_rgba(255,201,40,0.35)] backdrop-blur-xl sm:p-6">
+      <div className="absolute -inset-px rounded-[22px] bg-gradient-to-b from-cloud/20 via-cloud/5 to-transparent" />
+      <div className="relative rounded-[21px] bg-[#1f2023]/95 p-5 shadow-[0_30px_60px_-30px_rgba(0,0,0,0.6)] backdrop-blur-xl sm:p-6">
         <div className="flex items-center justify-between">
           <span className="eyebrow">Example task</span>
           <StatusBadge status={status} />
@@ -42,8 +42,8 @@ export function LifecyclePreview() {
         <div className="mt-6 flex items-end justify-between">
           <div>
             <p className="eyebrow mb-1">Reward</p>
-            <p className="num font-display text-4xl font-semibold tracking-[-0.04em] text-sun">
-              250 <span className="font-mono text-base font-normal text-sun/70">XLM</span>
+            <p className="num font-display text-4xl font-semibold tracking-[-0.04em]">
+              250 <span className="font-mono text-base font-normal text-cloud/45">XLM</span>
             </p>
           </div>
           <div

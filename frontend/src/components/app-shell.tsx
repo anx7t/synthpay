@@ -79,7 +79,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="px-3">
             <p className="eyebrow mb-3">Quick actions</p>
             <div className="flex flex-col gap-2">
-              <Button asChild size="sm" className="justify-start">
+              <Button asChild size="sm" variant="subtle" className="justify-start">
                 <Link href="/tasks/create">
                   <Plus /> Post a task
                 </Link>
@@ -123,7 +123,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className={cn("flex h-full flex-col gap-6 p-4 transition-transform duration-200", open ? "translate-y-0" : "-translate-y-3")}>
           <NavLinks onNavigate={() => setOpen(false)} />
           <div className="grid grid-cols-2 gap-2">
-            <Button asChild size="sm">
+            <Button asChild size="sm" variant="subtle">
               <Link href="/tasks/create">
                 <Plus /> Post a task
               </Link>

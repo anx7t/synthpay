@@ -1,13 +1,16 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Float, Lightformer, Sparkles } from "@react-three/drei";
 
 const SUN = new THREE.Color("#FFC928");
 const CLOUD = new THREE.Color("#F2F4F1");
 const GRAPHITE = new THREE.Color("#1C1D20");
+
+/** Outer radius of the whole hero composition (largest orbit + node). */
+const SCENE_RADIUS = 3.15;
 
 /* -------------------------------------------------------------------------- */
 /*  The coin: a beveled gold disc with the SynthPay "S" mark on both faces.    */
@@ -15,7 +18,6 @@ const GRAPHITE = new THREE.Color("#1C1D20");
 
 function useLogoCurve() {
   return useMemo(() => {
-    // The logo's S, traced as a smooth 3D curve (units ≈ coin radius).
     const pts: THREE.Vector3[] = [];
     const push = (x: number, y: number) => pts.push(new THREE.Vector3(x, y, 0));
     push(0.52, 0.5);
@@ -36,7 +38,7 @@ function useLogoCurve() {
   }, []);
 }
 
-function Coin({ radius = 1.35 }: { radius?: number }) {
+function Coin({ radius = 1.35, spin = 0.45 }: { radius?: number; spin?: number }) {
   const ref = useRef<THREE.Group>(null);
   const curve = useLogoCurve();
   const thickness = radius * 0.13;
@@ -45,7 +47,7 @@ function Coin({ radius = 1.35 }: { radius?: number }) {
   const rim = useMemo(() => new THREE.TorusGeometry(radius * 0.86, 0.035, 16, 128), [radius]);
 
   useFrame((_, dt) => {
-    if (ref.current) ref.current.rotation.y += dt * 0.45;
+    if (ref.current) ref.current.rotation.y += dt * spin;
   });
 
   const face = (z: number, flip = false) => (
@@ -65,12 +67,17 @@ function Coin({ radius = 1.35 }: { radius?: number }) {
 
   return (
     <group ref={ref}>
-      {/* body */}
       <mesh rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[radius, radius, thickness, 128, 1]} />
-        <meshStandardMaterial color={SUN} metalness={0.75} roughness={0.28} envMapIntensity={1.6} emissive={SUN} emissiveIntensity={0.18} />
+        <meshStandardMaterial
+          color={SUN}
+          metalness={0.75}
+          roughness={0.28}
+          envMapIntensity={1.6}
+          emissive={SUN}
+          emissiveIntensity={0.18}
+        />
       </mesh>
-      {/* reeded edge */}
       <mesh rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[radius * 1.004, radius * 1.004, thickness * 0.7, 160, 1, true]} />
         <meshStandardMaterial color="#e0a800" metalness={1} roughness={0.4} wireframe />
@@ -82,7 +89,7 @@ function Coin({ radius = 1.35 }: { radius?: number }) {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Orbits: agents circling the settlement core, payments streaking inward.   */
+/*  Orbits: agents circling the settlement core.                              */
 /* -------------------------------------------------------------------------- */
 
 function Orbit({
@@ -98,7 +105,6 @@ function Orbit({
   agents: number;
   offset?: number;
 }) {
-  const group = useRef<THREE.Group>(null);
   const nodes = useRef<(THREE.Mesh | null)[]>([]);
 
   useFrame(({ clock }) => {
@@ -107,26 +113,28 @@ function Orbit({
       if (!m) return;
       const a = t + (i / agents) * Math.PI * 2;
       m.position.set(Math.cos(a) * radius, Math.sin(a) * radius, 0);
-      const pulse = 1 + Math.sin(clock.getElapsedTime() * 3 + i) * 0.15;
-      m.scale.setScalar(pulse);
     });
   });
 
   return (
-    <group ref={group} rotation={tilt}>
+    <group rotation={tilt}>
       <mesh>
-        <torusGeometry args={[radius, 0.006, 8, 200]} />
-        <meshBasicMaterial color={CLOUD} transparent opacity={0.18} />
+        <torusGeometry args={[radius, 0.005, 8, 220]} />
+        <meshBasicMaterial color={CLOUD} transparent opacity={0.14} />
       </mesh>
       {Array.from({ length: agents }).map((_, i) => (
-        <mesh key={i} ref={(el) => {
+        <mesh
+          key={i}
+          ref={(el) => {
             nodes.current[i] = el;
-          }}>
-          <sphereGeometry args={[0.07, 24, 24]} />
+          }}
+        >
+          <sphereGeometry args={[i === 0 ? 0.075 : 0.05, 24, 24]} />
+          {/* One yellow node per orbit — the active agent. The rest stay quiet. */}
           <meshStandardMaterial
-            color={i % 2 ? CLOUD : SUN}
-            emissive={i % 2 ? CLOUD : SUN}
-            emissiveIntensity={i % 2 ? 0.6 : 1.6}
+            color={i === 0 ? SUN : CLOUD}
+            emissive={i === 0 ? SUN : CLOUD}
+            emissiveIntensity={i === 0 ? 1.4 : 0.35}
             toneMapped={false}
           />
         </mesh>
@@ -135,14 +143,52 @@ function Orbit({
   );
 }
 
-/* Leans the whole scene toward the pointer for a tactile parallax. */
-function Rig({ children }: { children: React.ReactNode }) {
+/**
+ * Positions and scales the composition so it always fits inside the canvas:
+ * on wide screens it sits to the right of the headline, on narrow screens it
+ * is centered. Nothing is ever clipped by the canvas edge.
+ */
+function Layout({ children }: { children: React.ReactNode }) {
+  const { size, viewport } = useThree();
+  const wide = size.width >= 1024;
+
+  const { x, scale } = useMemo(() => {
+    const halfH = viewport.height / 2;
+    if (wide) {
+      const cx = viewport.width * 0.2;
+      const room = Math.min(viewport.width / 2 - cx, halfH);
+      return { x: cx, scale: Math.min(1.15, (room * 0.86) / SCENE_RADIUS) };
+    }
+    const room = Math.min(viewport.width / 2, halfH);
+    return { x: 0, scale: (room * 0.86) / SCENE_RADIUS };
+  }, [viewport.width, viewport.height, wide]);
+
+  return (
+    <group position={[x, 0, 0]} scale={scale}>
+      {children}
+    </group>
+  );
+}
+
+/* Leans the scene toward the pointer anywhere on the page. */
+function Rig({ children, strength = 1 }: { children: React.ReactNode; strength?: number }) {
   const ref = useRef<THREE.Group>(null);
-  useFrame(({ pointer }, dt) => {
+  const pointer = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      pointer.current.x = (e.clientX / window.innerWidth) * 2 - 1;
+      pointer.current.y = -((e.clientY / window.innerHeight) * 2 - 1);
+    };
+    window.addEventListener("pointermove", onMove, { passive: true });
+    return () => window.removeEventListener("pointermove", onMove);
+  }, []);
+
+  useFrame((_, dt) => {
     if (!ref.current) return;
     const k = 1 - Math.pow(0.02, dt);
-    ref.current.rotation.y += (pointer.x * 0.35 - ref.current.rotation.y) * k;
-    ref.current.rotation.x += (-pointer.y * 0.25 - ref.current.rotation.x) * k;
+    ref.current.rotation.y += (pointer.current.x * 0.22 * strength - ref.current.rotation.y) * k;
+    ref.current.rotation.x += (-pointer.current.y * 0.16 * strength - ref.current.rotation.x) * k;
   });
   return <group ref={ref}>{children}</group>;
 }
@@ -152,8 +198,7 @@ function Lighting() {
     <>
       <ambientLight intensity={0.25} />
       <directionalLight position={[4, 5, 6]} intensity={2.2} color="#fff6dc" />
-      <pointLight position={[-4, -2, 3]} intensity={18} color={SUN} distance={14} />
-      {/* Procedural studio environment — no HDR download needed. */}
+      <pointLight position={[-4, -2, 3]} intensity={12} color={SUN} distance={14} />
       <Environment resolution={256}>
         <Lightformer form="rect" intensity={4} color="#ffffff" position={[0, 4, 4]} scale={[10, 2, 1]} />
         <Lightformer form="rect" intensity={2.5} color="#FFC928" position={[-5, 0, 2]} scale={[2, 8, 1]} />
@@ -165,32 +210,41 @@ function Lighting() {
 }
 
 export function CoinScene({ variant = "hero" }: { variant?: "hero" | "mini" }) {
-  const hero = variant === "hero";
+  if (variant === "mini") {
+    return (
+      <Canvas dpr={[1, 1.75]} camera={{ position: [0, 0, 4.6], fov: 40 }} gl={{ antialias: true, alpha: true }}>
+        <Lighting />
+        <Rig strength={0.6}>
+          <Float speed={1.4} rotationIntensity={0.3} floatIntensity={0.4}>
+            <group rotation={[0.25, -0.35, 0.08]}>
+              <Coin radius={1.25} spin={0.6} />
+            </group>
+          </Float>
+        </Rig>
+      </Canvas>
+    );
+  }
+
   return (
     <Canvas
       dpr={[1, 1.75]}
-      camera={{ position: [0, 0, hero ? 7 : 4.6], fov: 40 }}
+      camera={{ position: [0, 0, 9], fov: 40 }}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
-      style={{ background: "transparent" }}
     >
       <Lighting />
-      <Rig>
-        <Float speed={1.6} rotationIntensity={0.35} floatIntensity={0.6}>
-          <group rotation={[0.25, -0.35, 0.08]}>
-            <Coin radius={hero ? 1.45 : 1.25} />
-          </group>
-        </Float>
-        {hero && (
-          <>
-            <Orbit radius={2.2} tilt={[1.25, 0.2, 0]} speed={0.35} agents={3} />
-            <Orbit radius={2.75} tilt={[1.0, -0.5, 0.4]} speed={-0.22} agents={4} offset={1.3} />
-            <Orbit radius={3.0} tilt={[1.45, 0.6, -0.2]} speed={0.15} agents={2} offset={2.1} />
-            <Sparkles count={70} scale={[8, 6, 4]} size={2.2} speed={0.35} color="#FFC928" opacity={0.7} />
-            <Sparkles count={40} scale={[9, 7, 5]} size={1.4} speed={0.2} color="#F2F4F1" opacity={0.4} />
-          </>
-        )}
-        {!hero && <Sparkles count={24} scale={[4, 3, 2]} size={1.6} speed={0.3} color="#FFC928" opacity={0.6} />}
-      </Rig>
+      <Layout>
+        <Rig>
+          <Float speed={1.4} rotationIntensity={0.25} floatIntensity={0.35}>
+            <group rotation={[0.22, -0.32, 0.06]}>
+              <Coin radius={1.5} spin={0.35} />
+            </group>
+          </Float>
+          <Orbit radius={2.25} tilt={[1.25, 0.2, 0]} speed={0.3} agents={3} />
+          <Orbit radius={2.7} tilt={[1.0, -0.5, 0.4]} speed={-0.2} agents={4} offset={1.3} />
+          <Orbit radius={3.05} tilt={[1.45, 0.6, -0.2]} speed={0.13} agents={2} offset={2.1} />
+          <Sparkles count={36} scale={[6, 5, 3]} size={1.6} speed={0.25} color="#F2F4F1" opacity={0.35} />
+        </Rig>
+      </Layout>
     </Canvas>
   );
 }

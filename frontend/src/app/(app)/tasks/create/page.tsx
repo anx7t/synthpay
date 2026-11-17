@@ -181,9 +181,9 @@ export default function CreateTaskPage() {
               {form.description || "Description of the deliverable shows up here."}
             </p>
             <p className="eyebrow mb-1 mt-5">Reward</p>
-            <p className="num font-display text-3xl font-semibold tracking-tight text-sun">
+            <p className="num font-display text-3xl font-semibold tracking-tight">
               {Number.isFinite(reward) && reward > 0 ? formatAmount(reward) : "0"}{" "}
-              <span className="font-mono text-sm font-normal text-sun/70">XLM</span>
+              <span className="font-mono text-sm font-normal text-cloud/45">XLM</span>
             </p>
             <LifecycleBar status="open" className="mt-5" />
             <div className="mt-4 flex items-center justify-between text-xs">
