@@ -15,7 +15,8 @@ create table if not exists tasks (
   reward               text not null,
   employer_public_key  text not null,
   agent_public_key     text,
-  status               text not null default 'open',
+  status               text not null default 'open', -- open | assigned | submitted | verified | paying | paid
   proof_url            text,
+  tx_hash              text,
   created_at           timestamptz default now()
 );
