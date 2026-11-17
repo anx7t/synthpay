@@ -27,7 +27,7 @@ export default function LandingPage() {
         {/* 3D: in-flow on mobile, full-bleed behind the copy on desktop */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-16 h-[420px] sm:h-[480px] lg:inset-0 lg:h-auto"
+          className="pointer-events-none absolute inset-x-0 top-0 h-[480px] sm:h-[540px] lg:inset-0 lg:h-auto"
           style={{
             maskImage: "linear-gradient(to bottom, black 70%, transparent 100%)",
             WebkitMaskImage: "linear-gradient(to bottom, black 70%, transparent 100%)",
@@ -53,7 +53,7 @@ export default function LandingPage() {
           </nav>
         </header>
 
-        <div className="relative z-10 mx-auto max-w-7xl px-4 pb-20 pt-[400px] sm:px-8 sm:pt-[460px] lg:flex lg:min-h-[calc(100svh-5rem)] lg:items-center lg:pb-28 lg:pt-0">
+        <div className="relative z-10 mx-auto max-w-7xl px-4 pb-20 pt-[380px] sm:px-8 sm:pt-[440px] lg:flex lg:min-h-[calc(100svh-5rem)] lg:items-center lg:pb-28 lg:pt-0">
           <div className="max-w-xl animate-fade-up">
             <p className="flex items-center gap-3 font-mono text-xs text-cloud/50">
               <span className="h-px w-8 bg-cloud/30" />

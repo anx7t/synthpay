@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { cn } from "@/lib/utils";
 
@@ -14,9 +15,21 @@ const Scene = dynamic(() => import("./coin-scene"), {
 });
 
 export function CoinCanvas({ variant = "hero", className }: { variant?: "hero" | "mini"; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(true);
+
+  // Stop rendering when the scene is scrolled out of view.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([entry]) => setActive(entry.isIntersecting), { threshold: 0 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
   return (
-    <div className={cn("relative", className)}>
-      <Scene variant={variant} />
+    <div ref={ref} className={cn("relative", className)}>
+      <Scene variant={variant} active={active} />
     </div>
   );
 }
