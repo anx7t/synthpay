@@ -180,7 +180,7 @@ export function useSubmitTask() {
 export function useVerifyTask() {
   return useTaskMutation(
     ({ id }: { id: string }) => api.verifyTask(id),
-    (_, res) => res.message ?? "Task verified — ready for payout",
+    () => "Work verified — ready to release payment",
   );
 }
 

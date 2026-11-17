@@ -96,29 +96,36 @@ function normalizeStatus(raw: unknown): TaskStatus {
   return (TASK_STATUSES as readonly string[]).includes(s) ? (s as TaskStatus) : "open";
 }
 
+/*
+ * The backend returns Supabase rows as-is, so fields are snake_case:
+ *   tasks:  id, title, description, reward (text), employer_public_key,
+ *           agent_public_key, status, proof_url, created_at
+ *   agents: id, name, agent_type, public_key, created_at
+ * camelCase is accepted too in case the API starts mapping them.
+ */
 export function normalizeTask(raw: unknown): Task {
   const t = isObj(raw) ? raw : {};
   return {
-    id: str(t.id, t._id) ?? "unknown",
+    id: str(t.id) ?? "unknown",
     title: str(t.title) ?? "Untitled task",
     description: str(t.description) ?? "",
     reward: num(t.reward),
     status: normalizeStatus(t.status),
-    employerPublicKey: str(t.employerPublicKey),
-    agentPublicKey: str(t.agentPublicKey),
-    proofUrl: str(t.proofUrl),
-    txHash: str(t.txHash),
-    createdAt: str(t.createdAt),
+    employerPublicKey: str(t.employer_public_key, t.employerPublicKey),
+    agentPublicKey: str(t.agent_public_key, t.agentPublicKey),
+    proofUrl: str(t.proof_url, t.proofUrl),
+    txHash: str(t.tx_hash, t.txHash),
+    createdAt: str(t.created_at, t.createdAt),
   };
 }
 
 export function normalizeAgent(raw: unknown): Agent {
   const a = isObj(raw) ? raw : {};
   return {
-    publicKey: str(a.publicKey) ?? "",
+    publicKey: str(a.public_key, a.publicKey) ?? "",
     name: str(a.name) ?? "Unnamed agent",
-    agentType: str(a.agentType) ?? "agent",
-    createdAt: str(a.createdAt),
+    agentType: str(a.agent_type, a.agentType) ?? "agent",
+    createdAt: str(a.created_at, a.createdAt),
   };
 }
 

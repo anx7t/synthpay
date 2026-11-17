@@ -79,7 +79,8 @@ export function TaskActions({ task, size = "default" }: { task: Task; size?: "sm
 
 function AssignDialog({ task, open, onOpenChange }: { task: Task; open: boolean; onOpenChange: (o: boolean) => void }) {
   const { all: agents } = useKnownAgents(undefined);
-  const [key, setKey] = useState("");
+  // Tasks created with an agent stay "open" on the backend — start from that agent.
+  const [key, setKey] = useState(task.agentPublicKey ?? "");
   const [touched, setTouched] = useState(false);
   const assign = useAssignTask();
   const valid = isStellarPublicKey(key);
@@ -93,7 +94,7 @@ function AssignDialog({ task, open, onOpenChange }: { task: Task; open: boolean;
       {
         onSuccess: () => {
           onOpenChange(false);
-          setKey("");
+          setKey(task.agentPublicKey ?? "");
           setTouched(false);
         },
       },
