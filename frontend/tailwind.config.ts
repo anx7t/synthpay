@@ -51,6 +51,7 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
         display: ["var(--font-display)", "var(--font-sans)", "sans-serif"],
+        serif: ["var(--font-serif)", "ui-serif", "Georgia", "serif"],
         mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
       },
       borderRadius: {
@@ -75,6 +76,7 @@ const config: Config = {
           to: { opacity: "1", transform: "translateY(0)" },
         },
         shimmer: { from: { backgroundPosition: "200% 0" }, to: { backgroundPosition: "-200% 0" } },
+        marquee: { from: { transform: "translateX(0)" }, to: { transform: "translateX(-50%)" } },
         ticker: { from: { transform: "translateX(0)" }, to: { transform: "translateX(-50%)" } },
         bob: {
           "0%, 100%": { transform: "translateY(0)" },
@@ -88,6 +90,7 @@ const config: Config = {
         "drift-slow": "drift-slow 26s ease-in-out infinite",
         "fade-up": "fade-up 0.6s cubic-bezier(0.22,1,0.36,1) both",
         shimmer: "shimmer 2.2s linear infinite",
+        marquee: "marquee 32s linear infinite",
         ticker: "ticker 40s linear infinite",
         bob: "bob 6s ease-in-out infinite",
       },
