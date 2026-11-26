@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import Link from "next/link";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { LifecyclePreview, useLifecycleStep } from "@/components/lifecycle-preview";
 import { TiltCard } from "@/components/tilt-card";
 import { TASK_STATUSES } from "@/lib/types";
@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { Reveal, useInView } from "./reveal";
 
 /* -------------------------------------------------------------------------- */
-/*  Lifecycle: chips light up in sync with the animated example card          */
+/*  Lifecycle: a progress rail in sync with the animated example card        */
 /* -------------------------------------------------------------------------- */
 
 export function LifecycleSection() {
@@ -34,42 +34,56 @@ export function LifecycleSection() {
           </p>
         </Reveal>
         <Reveal delay={220}>
-          <div className="mt-9 flex flex-wrap gap-2">
-            {TASK_STATUSES.map((s, i) => {
-              const active = i === current && !settled;
-              const done = i < current || (settled && i <= current);
-              return (
-                <span
-                  key={s}
-                  className={cn(
-                    "relative inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 font-mono text-xs transition-all duration-500",
-                    active && "border-sun/70 bg-sun/10 text-sun shadow-[0_0_24px_-4px_rgba(255,211,107,0.55)]",
-                    done && !active && "border-cloud/15 text-cloud/70",
-                    !done && !active && "border-cloud/10 text-cloud/35",
-                    settled && s === "paid" && "border-teal/50 bg-teal/10 text-teal shadow-[0_0_24px_-4px_rgba(95,227,200,0.5)]",
-                  )}
-                >
-                  {done && !active ? (
-                    <Check className="h-3 w-3" strokeWidth={3} />
-                  ) : (
-                    <span className={cn("h-1.5 w-1.5 rounded-full", active ? "animate-pulse bg-sun" : "bg-cloud/25")} />
-                  )}
-                  {String(i + 1).padStart(2, "0")} · {s}
-                </span>
-              );
-            })}
+          {/* Progress rail: a thin line that fills as the example task advances. */}
+          <div className="mt-12 max-w-lg" role="list" aria-label="Task lifecycle">
+            <div className="relative h-px bg-cloud/[0.12]">
+              <div
+                className="absolute inset-y-0 left-0 bg-gradient-to-r from-sun/70 to-sun transition-[width] duration-700 ease-out"
+                style={{ width: `${(current / (TASK_STATUSES.length - 1)) * 100}%` }}
+              />
+            </div>
+            <div className="relative h-12">
+              {TASK_STATUSES.map((s, i) => {
+                const last = TASK_STATUSES.length - 1;
+                const reached = i <= current;
+                const active = i === current;
+                const align = i === 0 ? "items-start" : i === last ? "items-end -translate-x-full" : "items-center -translate-x-1/2";
+                return (
+                  <div
+                    key={s}
+                    role="listitem"
+                    aria-current={active ? "step" : undefined}
+                    className={cn("absolute top-0 flex flex-col pt-5", align)}
+                    style={{ left: `${(i / last) * 100}%` }}
+                  >
+                    <span
+                      className={cn(
+                        "absolute top-0 h-[7px] w-[7px] -translate-y-1/2 rounded-full transition-colors duration-500",
+                        i === 0 ? "left-0" : i === last ? "right-0" : "left-1/2 -translate-x-1/2",
+                        reached ? (settled && s === "paid" ? "bg-teal" : "bg-sun") : "bg-cloud/25",
+                      )}
+                    />
+                    <span className="font-mono text-[10px] text-cloud/35">{String(i + 1).padStart(2, "0")}</span>
+                    <span
+                      className={cn(
+                        "mt-1 text-[13px] capitalize transition-colors duration-500",
+                        active ? (settled ? "text-teal" : "text-cloud") : reached ? "text-cloud/60" : "text-cloud/30",
+                      )}
+                    >
+                      {s}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </Reveal>
       </div>
 
       <Reveal delay={150}>
         <div className="relative">
-          {/* rotating glow border */}
-          <div aria-hidden className="glow-border pointer-events-none absolute -inset-[2px] rounded-[24px]" />
-          <div aria-hidden className="absolute -inset-10 -z-10 rounded-full bg-teal/10 blur-3xl" />
-          <TiltCard className="rounded-[22px]" max={8}>
-            <LifecyclePreview step={step} />
-          </TiltCard>
+          <div aria-hidden className="absolute -inset-10 -z-10 rounded-full bg-teal/[0.07] blur-3xl" />
+          <LifecyclePreview step={step} />
         </div>
       </Reveal>
     </section>

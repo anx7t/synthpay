@@ -261,63 +261,99 @@ function useCoinTextures() {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  The coin stream: instanced coins rising along a curved diagonal band.      */
+/*  The coin stream: coins in free fall that collide instead of overlapping.   */
+/*  A tiny rigid-body sim: gravity + air drag, sphere-bounded collisions with  */
+/*  impulse response and spin transfer, respawn above the top when they fall   */
+/*  out of view. ~30 bodies, so an O(n²) pass is cheaper than any broadphase.  */
 /* -------------------------------------------------------------------------- */
 
-type Seed = {
-  t: number; // progress along the path, 0..1
-  speed: number;
-  lateral: number; // offset across the band
-  z: number;
-  scale: number;
-  tilt: number;
-  wobble: number;
-  wobbleSpeed: number;
-  spin: number;
-  flip: number; // >0: this coin tumbles end over end
-  phase: number;
+type Body = {
+  pos: THREE.Vector3;
+  vel: THREE.Vector3;
+  quat: THREE.Quaternion;
+  spin: THREE.Vector3; // world-space angular velocity, rad/s
+  size: number; // render scale = collision radius (coin radius is 1)
+  mass: number;
 };
 
+const GRAVITY = 1.7;
+const AIR_DRAG = 0.85; // terminal speed ≈ GRAVITY / AIR_DRAG
+const RESTITUTION = 0.45;
+const SUBSTEPS = 2;
+const Z_MIN = -2.5;
+const Z_MAX = 1.2;
+
+const rnd = (min: number, max: number) => min + Math.random() * (max - min);
+
+/** Stable pseudo-random in [0, 1) for per-coin tint. */
 const rand = (i: number, n: number) => {
   const x = Math.sin(i * 127.1 + n * 311.7) * 43758.5453;
   return x - Math.floor(x);
 };
 
-function makeSeed(i: number, round = 0): Seed {
-  const r = (n: number) => rand(i + round * 97, n);
-  return {
-    t: r(1),
-    speed: 0.045 + r(2) * 0.03,
-    lateral: (r(3) - 0.5) * 2,
-    z: -5 + r(4) * 7,
-    scale: 0.55 + r(5) * 0.3,
-    tilt: 0.75 + (r(6) - 0.5) * 0.5,
-    wobble: 0.15 + r(7) * 0.3,
-    wobbleSpeed: 0.4 + r(8) * 0.8,
-    spin: (r(9) - 0.5) * 0.8,
-    flip: r(10) > 0.78 ? 0.6 + r(11) * 1.2 : 0,
-    phase: r(12) * Math.PI * 2,
-  };
+function randomOrientation(q: THREE.Quaternion) {
+  // Mostly face-on to the camera, tipped back like the reference, with variety.
+  return q.setFromEuler(new THREE.Euler(rnd(0.5, 1.3), rnd(0, Math.PI * 2), rnd(-0.6, 0.4), "XZY"));
 }
 
 function CoinStream({ interaction }: { interaction: React.MutableRefObject<Interaction> }) {
   const { size, viewport, camera } = useThree();
   const wide = size.width >= 1024;
-  const count = wide ? 34 : 16;
+  const count = wide ? 30 : 14;
 
   const mesh = useRef<THREE.InstancedMesh>(null);
   const tex = useCoinTextures();
-  const seeds = useRef<Seed[]>([]);
-  const rounds = useRef<number[]>([]);
-  const push = useRef<THREE.Vector3[]>([]);
-  const speedBoost = useRef(1);
+  const bodies = useRef<Body[]>([]);
+  const timeScale = useRef(1);
   const dummy = useMemo(() => new THREE.Object3D(), []);
-  const tmp = useMemo(() => ({ a: new THREE.Vector3(), b: new THREE.Vector3(), p: new THREE.Vector3() }), []);
+  const tmp = useMemo(
+    () => ({ n: new THREE.Vector3(), rv: new THREE.Vector3(), t: new THREE.Vector3(), dq: new THREE.Quaternion() }),
+    [],
+  );
 
-  if (seeds.current.length !== count) {
-    seeds.current = Array.from({ length: count }, (_, i) => makeSeed(i));
-    rounds.current = Array.from({ length: count }, () => 0);
-    push.current = Array.from({ length: count }, () => new THREE.Vector3());
+  /** The column the coins fall through, in world units at z = 0. */
+  const band = useMemo(() => {
+    const W = viewport.width;
+    return { cx: wide ? W * 0.29 : W * 0.38, half: wide ? Math.min(2.6, W * 0.14) : W * 0.16 };
+  }, [viewport.width, wide]);
+
+  /** Drop body `b` somewhere in [yMin, yMax], as far as possible from the others. */
+  const place = (b: Body, yMin: number, yMax: number, others: Body[]) => {
+    let best = -Infinity;
+    const cand = new THREE.Vector3();
+    for (let k = 0; k < 12; k++) {
+      cand.set(band.cx + rnd(-band.half, band.half), rnd(yMin, yMax), rnd(Z_MIN, Z_MAX));
+      let gap = Infinity;
+      for (const o of others) if (o !== b) gap = Math.min(gap, cand.distanceTo(o.pos) - o.size - b.size);
+      if (gap > best) {
+        best = gap;
+        b.pos.copy(cand);
+      }
+      if (gap > 0.4) break;
+    }
+    b.vel.set(rnd(-0.35, 0.1), rnd(-1.2, -0.4), 0);
+    randomOrientation(b.quat);
+    b.spin.set(rnd(-1.5, 1.5), rnd(-1, 1), rnd(-0.8, 0.8));
+  };
+
+  if (bodies.current.length !== count) {
+    const H = viewport.height;
+    const list: Body[] = [];
+    for (let i = 0; i < count; i++) {
+      const sz = rnd(0.5, 0.82) * (wide ? 1 : 0.72);
+      const b: Body = {
+        pos: new THREE.Vector3(),
+        vel: new THREE.Vector3(),
+        quat: new THREE.Quaternion(),
+        spin: new THREE.Vector3(),
+        size: sz,
+        mass: sz * sz * sz,
+      };
+      // Start already spread over the screen so the hero isn't empty on load.
+      place(b, -H * 0.5, H * 0.5 + 3, list);
+      list.push(b);
+    }
+    bodies.current = list;
   }
 
   const geometry = useMemo(() => new THREE.CylinderGeometry(1, 1, 0.14, 72, 1), []);
@@ -363,82 +399,107 @@ function CoinStream({ interaction }: { interaction: React.MutableRefObject<Inter
     if (m.instanceColor) m.instanceColor.needsUpdate = true;
   }, [count]);
 
-  useFrame(({ clock }, rawDt) => {
+  const step = (dt: number, px: number, py: number, pointerActive: boolean) => {
+    const list = bodies.current;
+    const H = viewport.height;
+    const drag = Math.exp(-AIR_DRAG * dt);
+    const { n, rv, t, dq } = tmp;
+
+    // Forces + integration.
+    for (const b of list) {
+      b.vel.y -= GRAVITY * dt;
+      b.vel.multiplyScalar(drag);
+
+      // Soft walls keep the stream in its column and depth range.
+      const dx = b.pos.x - band.cx;
+      if (Math.abs(dx) > band.half) b.vel.x -= Math.sign(dx) * (Math.abs(dx) - band.half) * 2 * dt;
+      if (b.pos.z < Z_MIN) b.vel.z += (Z_MIN - b.pos.z) * 2 * dt;
+      if (b.pos.z > Z_MAX) b.vel.z -= (b.pos.z - Z_MAX) * 2 * dt;
+
+      // The pointer pushes coins away, like a hand through falling coins.
+      if (pointerActive) {
+        const k = (camera.position.z - b.pos.z) / camera.position.z;
+        n.set(b.pos.x - px * k, b.pos.y - py * k, 0);
+        const d = n.length();
+        const reach = 1.8 + b.size;
+        if (d < reach && d > 1e-4) {
+          const f = (1 - d / reach) * 14 * dt;
+          b.vel.addScaledVector(n.divideScalar(d), f);
+          b.spin.x += n.y * f * 1.5;
+          b.spin.z -= n.x * f * 1.5;
+        }
+      }
+
+      b.pos.addScaledVector(b.vel, dt);
+
+      const w = b.spin.length();
+      if (w > 1e-5) {
+        dq.setFromAxisAngle(t.copy(b.spin).divideScalar(w), w * dt);
+        b.quat.premultiply(dq).normalize();
+      }
+      b.spin.multiplyScalar(Math.exp(-0.25 * dt));
+    }
+
+    // Collisions: separate overlapping pairs and bounce them apart.
+    for (let i = 0; i < list.length; i++) {
+      const a = list[i];
+      for (let j = i + 1; j < list.length; j++) {
+        const c = list[j];
+        n.subVectors(a.pos, c.pos);
+        const dist = n.length();
+        const minDist = a.size + c.size;
+        if (dist >= minDist || dist < 1e-6) continue;
+        n.divideScalar(dist);
+
+        const invA = 1 / a.mass;
+        const invC = 1 / c.mass;
+        const overlap = minDist - dist;
+        a.pos.addScaledVector(n, (overlap * invA) / (invA + invC));
+        c.pos.addScaledVector(n, (-overlap * invC) / (invA + invC));
+
+        rv.subVectors(a.vel, c.vel);
+        const vn = rv.dot(n);
+        if (vn < 0) {
+          const jImp = (-(1 + RESTITUTION) * vn) / (invA + invC);
+          a.vel.addScaledVector(n, jImp * invA);
+          c.vel.addScaledVector(n, -jImp * invC);
+          // Glancing hits set the coins tumbling.
+          t.copy(rv).addScaledVector(n, -vn); // tangential relative velocity
+          rv.crossVectors(n, t);
+          a.spin.addScaledVector(rv, 1.4 / a.size);
+          c.spin.addScaledVector(rv, 1.4 / c.size);
+        }
+      }
+    }
+
+    // Recycle coins that fell out of view: drop them in again from above.
+    for (const b of list) {
+      if (b.pos.y < -H * 0.5 - b.size - 1.5) place(b, H * 0.5 + 1.5, H * 0.5 + 4, list);
+    }
+  };
+
+  useFrame((_, rawDt) => {
     const m = mesh.current;
     if (!m) return;
-    const dt = Math.min(rawDt, 0.05);
-    const time = clock.getElapsedTime();
     const { pointer, scroll, reduced } = interaction.current;
 
-    // Coins rush faster as the page scrolls.
-    const targetBoost = (reduced ? 0.25 : 1) * (1 + scroll * 4);
-    speedBoost.current += (targetBoost - speedBoost.current) * damp(dt, 3);
+    // Scrolling makes the coins rain faster; reduced motion slows everything.
+    const target = (reduced ? 0.25 : 1) * (1 + scroll * 2.5);
+    timeScale.current += (target - timeScale.current) * damp(rawDt, 3);
+    const dt = (Math.min(rawDt, 1 / 30) * timeScale.current) / SUBSTEPS;
 
-    // The band: a gentle curve from below the fold up past the top right.
-    const W = viewport.width;
-    const H = viewport.height;
-    const cx = wide ? W * 0.27 : W * 0.42;
-    const p0x = cx - W * 0.14, p0y = -H * 0.5 - 2.2;
-    const p1x = cx - W * 0.07, p1y = 0;
-    const p2x = cx + W * 0.2, p2y = H * 0.5 + 2.2;
-    const bandWidth = wide ? 1.9 : 1.1;
-
-    // Pointer in world space at z = 0.
-    const px = pointer.x * (W / 2);
-    const py = pointer.y * (H / 2);
     const pointerActive = Math.abs(pointer.x) <= 1;
+    const px = pointer.x * (viewport.width / 2);
+    const py = pointer.y * (viewport.height / 2);
+    for (let s = 0; s < SUBSTEPS; s++) step(dt, px, py, pointerActive);
 
-    for (let i = 0; i < count; i++) {
-      const s = seeds.current[i];
-      s.t += dt * s.speed * speedBoost.current;
-      if (s.t > 1) {
-        // Respawn at the bottom with fresh randomness.
-        rounds.current[i] += 1;
-        seeds.current[i] = { ...makeSeed(i, rounds.current[i]), t: s.t - 1 };
-      }
-      const c = seeds.current[i];
-      const t = c.t;
-      const u = 1 - t;
-
-      // Quadratic bezier point and tangent.
-      const x = u * u * p0x + 2 * u * t * p1x + t * t * p2x;
-      const y = u * u * p0y + 2 * u * t * p1y + t * t * p2y;
-      tmp.a.set(2 * u * (p1x - p0x) + 2 * t * (p2x - p1x), 2 * u * (p1y - p0y) + 2 * t * (p2y - p1y), 0).normalize();
-      // Band widens towards the top, like light spreading.
-      const spread = bandWidth * (0.75 + t * 0.6);
-      tmp.p.set(x - tmp.a.y * c.lateral * spread, y + tmp.a.x * c.lateral * spread, c.z);
-
-      // Pointer repels nearby coins (projected to the coin's depth).
-      const pv = push.current[i];
-      if (pointerActive) {
-        const depthK = (camera.position.z - c.z) / camera.position.z;
-        tmp.b.set(tmp.p.x - px * depthK, tmp.p.y - py * depthK, 0);
-        const d = tmp.b.length();
-        const reach = 2.2;
-        const f = d < reach ? Math.pow(1 - d / reach, 2) * 1.6 : 0;
-        tmp.b.normalize().multiplyScalar(f);
-        pv.lerp(tmp.b, damp(dt, 6));
-      } else {
-        pv.multiplyScalar(1 - damp(dt, 3));
-      }
-
-      dummy.position.set(tmp.p.x + pv.x, tmp.p.y + pv.y + Math.sin(time * 0.8 + c.phase) * 0.08, c.z);
-
-      const w = Math.sin(time * c.wobbleSpeed + c.phase) * c.wobble;
-      const pushTilt = (pv.x + pv.y) * 0.35;
-      dummy.rotation.set(
-        c.tilt + w + c.flip * time * 2.2 + pushTilt,
-        c.phase + time * c.spin,
-        -0.35 + Math.cos(time * c.wobbleSpeed * 0.8 + c.phase) * c.wobble * 0.8,
-        "XZY",
-      );
-
-      // Grow in at the bottom, fade by shrinking past the top edge.
-      const edge = Math.min(1, t * 8, (1 - t) * 10);
-      dummy.scale.setScalar(c.scale * (wide ? 1 : 0.7) * (0.6 + 0.4 * edge));
+    bodies.current.forEach((b, i) => {
+      dummy.position.copy(b.pos);
+      dummy.quaternion.copy(b.quat);
+      dummy.scale.setScalar(b.size);
       dummy.updateMatrix();
       m.setMatrixAt(i, dummy.matrix);
-    }
+    });
     m.instanceMatrix.needsUpdate = true;
   });
 
