@@ -282,6 +282,11 @@ const RESTITUTION = 0.45;
 const SUBSTEPS = 2;
 const Z_MIN = -2.5;
 const Z_MAX = 1.2;
+/** Rotation speed controls (rad/s). Lower = calmer coins. */
+const SPIN_START = 0.5; // max spin a coin starts with
+const SPIN_MAX = 1.2; // hard cap after collisions
+const SPIN_SETTLE = 1.2; // how fast extra spin from hits dies down
+const SPIN_FROM_HIT = 0.35; // spin added by a glancing collision
 
 const rnd = (min: number, max: number) => min + Math.random() * (max - min);
 
@@ -333,7 +338,7 @@ function CoinStream({ interaction }: { interaction: React.MutableRefObject<Inter
     }
     b.vel.set(rnd(-0.35, 0.1), rnd(-1.2, -0.4), 0);
     randomOrientation(b.quat);
-    b.spin.set(rnd(-1.5, 1.5), rnd(-1, 1), rnd(-0.8, 0.8));
+    b.spin.set(rnd(-1, 1), rnd(-0.6, 0.6), rnd(-0.5, 0.5)).multiplyScalar(SPIN_START);
   };
 
   if (bodies.current.length !== count) {
@@ -425,19 +430,24 @@ function CoinStream({ interaction }: { interaction: React.MutableRefObject<Inter
         if (d < reach && d > 1e-4) {
           const f = (1 - d / reach) * 14 * dt;
           b.vel.addScaledVector(n.divideScalar(d), f);
-          b.spin.x += n.y * f * 1.5;
-          b.spin.z -= n.x * f * 1.5;
+          b.spin.x += n.y * f * 0.4;
+          b.spin.z -= n.x * f * 0.4;
         }
       }
 
       b.pos.addScaledVector(b.vel, dt);
 
-      const w = b.spin.length();
+      // Ease any spin above the gentle starting speed back down, and cap it.
+      let w = b.spin.length();
+      if (w > SPIN_START) {
+        const target = SPIN_START + (w - SPIN_START) * Math.exp(-SPIN_SETTLE * dt);
+        b.spin.multiplyScalar(Math.min(target, SPIN_MAX) / w);
+        w = b.spin.length();
+      }
       if (w > 1e-5) {
         dq.setFromAxisAngle(t.copy(b.spin).divideScalar(w), w * dt);
         b.quat.premultiply(dq).normalize();
       }
-      b.spin.multiplyScalar(Math.exp(-0.25 * dt));
     }
 
     // Collisions: separate overlapping pairs and bounce them apart.
@@ -466,8 +476,8 @@ function CoinStream({ interaction }: { interaction: React.MutableRefObject<Inter
           // Glancing hits set the coins tumbling.
           t.copy(rv).addScaledVector(n, -vn); // tangential relative velocity
           rv.crossVectors(n, t);
-          a.spin.addScaledVector(rv, 1.4 / a.size);
-          c.spin.addScaledVector(rv, 1.4 / c.size);
+          a.spin.addScaledVector(rv, SPIN_FROM_HIT / a.size);
+          c.spin.addScaledVector(rv, SPIN_FROM_HIT / c.size);
         }
       }
     }
