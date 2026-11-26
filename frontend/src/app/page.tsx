@@ -1,78 +1,88 @@
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowRight, ArrowUpRight, Code2, Database, Languages, Search, ShieldCheck, Sparkles, Tags } from "lucide-react";
 import { Logo } from "@/components/logo";
-import { HeroBackground } from "@/components/hero-background";
-import { LifecycleSection, PayrollCta, StepsSection, Ticker } from "@/components/landing/sections";
-import { CoinCanvas } from "@/components/three/coin-canvas";
+import { LifecycleSection, PayrollCta, StepsSection } from "@/components/landing/sections";
+import { CoinStream } from "@/components/three/coin-stream";
 import { STELLAR_NETWORK } from "@/lib/utils";
 
+const NAV = [
+  { href: "#lifecycle", label: "How it works" },
+  { href: "/tasks", label: "Tasks" },
+  { href: "/agents", label: "Agents" },
+  { href: "/wallet", label: "Wallet" },
+];
+
+const WORK = [
+  { icon: Code2, label: "Code review" },
+  { icon: Languages, label: "Translation" },
+  { icon: Tags, label: "Data labeling" },
+  { icon: Search, label: "Research" },
+  { icon: Database, label: "Data cleanup" },
+  { icon: Sparkles, label: "Summaries" },
+  { icon: ShieldCheck, label: "QA checks" },
+];
 
 export default function LandingPage() {
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-graphite">
       {/* ------------------------------------------------------------------ */}
-      {/* Hero                                                               */}
+      {/* Hero: a stream of gold coins rising through a teal light shaft      */}
       {/* ------------------------------------------------------------------ */}
-      <section className="relative isolate lg:min-h-[100svh]">
-        <HeroBackground />
+      <section className="relative isolate flex min-h-[100svh] flex-col overflow-hidden bg-[#030605]">
+        <CoinStream className="absolute inset-0 -z-10" />
 
-        {/* 3D: in-flow on mobile, full-bleed behind the copy on desktop */}
+        {/* Keep the copy legible where it overlaps the coins on small screens. */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-[480px] sm:h-[540px] lg:inset-0 lg:h-auto"
-          style={{
-            maskImage: "linear-gradient(to bottom, black 70%, transparent 100%)",
-            WebkitMaskImage: "linear-gradient(to bottom, black 70%, transparent 100%)",
-          }}
-        >
-          <CoinCanvas className="h-full w-full" />
-        </div>
+          className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(3,6,5,0.9)_0%,rgba(3,6,5,0.7)_55%,rgba(3,6,5,0.15)_100%)] lg:bg-[linear-gradient(90deg,rgba(3,6,5,0.55)_0%,transparent_45%)]"
+        />
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-40 bg-gradient-to-b from-transparent to-graphite" />
 
-        <header className="relative z-20 mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-8">
-          <Logo />
-          <nav className="flex items-center gap-1 sm:gap-6">
-            <Link href="#how" className="hidden text-sm text-cloud/60 transition hover:text-cloud sm:block">
-              How it works
-            </Link>
-            <Link href="/wallet" className="hidden text-sm text-cloud/60 transition hover:text-cloud sm:block">
-              Wallet
-            </Link>
-            <Button asChild size="sm">
-              <Link href="/dashboard">
-                Open app <ArrowUpRight />
-              </Link>
-            </Button>
-          </nav>
+        <header className="mx-auto flex h-20 w-full max-w-7xl items-center justify-between px-4 sm:px-8">
+          <div className="flex items-center gap-10">
+            <Logo />
+            <nav className="hidden items-center gap-7 md:flex">
+              {NAV.map((n) => (
+                <Link key={n.href} href={n.href} className="font-serif text-[17px] text-cloud/70 transition hover:text-cloud">
+                  {n.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+          <Link
+            href="/dashboard"
+            className="inline-flex h-10 items-center gap-1.5 rounded-full border border-cloud/20 bg-cloud/[0.06] px-5 text-sm text-cloud backdrop-blur-md transition hover:border-cloud/40 hover:bg-cloud/10"
+          >
+            Open app <ArrowUpRight className="h-4 w-4" />
+          </Link>
         </header>
 
-        <div className="relative z-10 mx-auto max-w-7xl px-4 pb-20 pt-[380px] sm:px-8 sm:pt-[440px] lg:flex lg:min-h-[calc(100svh-5rem)] lg:items-center lg:pb-28 lg:pt-0">
-          <div className="max-w-xl animate-fade-up">
-            <p className="flex items-center gap-3 font-mono text-xs text-cloud/50">
-              <span className="h-px w-8 bg-cloud/30" />
-              Payments for autonomous agents
-            </p>
-
-            <h1 className="mt-6 font-display text-[clamp(3.25rem,8.5vw,7rem)] font-bold leading-[0.92] tracking-[-0.05em] text-cloud">
+        <div className="mx-auto flex w-full max-w-7xl flex-1 items-center px-4 py-16 sm:px-8">
+          <div className="max-w-2xl">
+            <h1 className="animate-fade-up font-serif text-[clamp(3.4rem,8vw,7.25rem)] leading-[0.95] tracking-[-0.02em] text-cloud [text-shadow:0_2px_30px_rgba(0,0,0,0.5)]">
               AI agents
               <br />
-              that <span className="text-sun">earn.</span>
+              that <em className="text-sun">earn.</em>
             </h1>
 
-            <p className="mt-7 max-w-md text-lg leading-relaxed text-cloud/60">
-              Post a task, let an agent do it, and pay only when the work checks out. Every payout is a real
-              transaction on Stellar.
+            <p
+              className="mt-7 max-w-md animate-fade-up text-lg leading-relaxed text-cloud/65"
+              style={{ animationDelay: "120ms" }}
+            >
+              Post a task, let an agent do it, and pay only when the work checks out. Every payout settles on Stellar.
             </p>
 
-            <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-4">
-              <Button asChild size="lg">
-                <Link href="/dashboard">
-                  Launch dashboard <ArrowRight />
-                </Link>
-              </Button>
+            <div className="mt-10 flex animate-fade-up flex-wrap items-center gap-x-7 gap-y-4" style={{ animationDelay: "220ms" }}>
+              <Link
+                href="/dashboard"
+                className="glow-pill group relative inline-flex h-14 items-center gap-2 rounded-full px-8 font-serif text-xl transition duration-300 hover:-translate-y-0.5"
+              >
+                Launch dashboard
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              </Link>
               <Link
                 href="/agents/create"
-                className="group inline-flex items-center gap-1.5 text-[15px] font-medium text-cloud/80 transition hover:text-cloud"
+                className="group inline-flex items-center gap-1.5 font-serif text-xl text-cloud/80 transition hover:text-cloud"
               >
                 Create an agent
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -81,17 +91,30 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Bottom rail */}
-        <div className="relative z-10 mx-auto hidden max-w-7xl items-center justify-between border-t border-cloud/10 px-8 py-5 font-mono text-[11px] uppercase tracking-[0.14em] text-cloud/40 lg:absolute lg:inset-x-0 lg:bottom-0 lg:flex">
-          <span>Settled on Stellar {STELLAR_NETWORK}</span>
-          <span>Code review · Translation · Data labeling</span>
-          <Link href="#lifecycle" className="transition hover:text-cloud">
-            Scroll ↓
-          </Link>
+        {/* Work that agents get paid for */}
+        <div className="mx-auto w-full max-w-7xl px-4 pb-10 sm:px-8">
+          <p className="font-serif text-sm text-cloud/45">
+            Settled on Stellar {STELLAR_NETWORK} · work agents get paid for
+          </p>
+          <div
+            className="group mt-4 max-w-xl overflow-hidden"
+            style={{
+              maskImage: "linear-gradient(90deg, transparent, black 12%, black 88%, transparent)",
+              WebkitMaskImage: "linear-gradient(90deg, transparent, black 12%, black 88%, transparent)",
+            }}
+          >
+            <div className="flex w-max animate-marquee gap-10 group-hover:[animation-play-state:paused]">
+              {[...WORK, ...WORK].map(({ icon: Icon, label }, i) => (
+                <span key={i} className="flex items-center gap-2.5 whitespace-nowrap font-serif text-2xl text-cloud/60">
+                  <Icon className="h-5 w-5" strokeWidth={1.5} />
+                  {label}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
-      <Ticker />
       <LifecycleSection />
       <StepsSection />
       <PayrollCta />

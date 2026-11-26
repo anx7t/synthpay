@@ -201,7 +201,7 @@ export default function CreateTaskPage() {
             </div>
             <h3
               className={cn(
-                "mt-4 break-words font-display text-lg font-semibold leading-snug tracking-tight",
+                "mt-4 break-words font-serif text-[22px] font-normal leading-tight tracking-normal",
                 !form.title && "text-cloud/25",
               )}
             >
@@ -219,7 +219,7 @@ export default function CreateTaskPage() {
             <div className="mt-4 flex items-center justify-between text-xs">
               <span className="text-cloud/40">Employer</span>
               <code className="font-mono text-cloud/70">
-                {form.employerPublicKey ? truncateKey(form.employerPublicKey, 5, 5) : "—"}
+                {isStellarPublicKey(form.employerPublicKey) ? truncateKey(form.employerPublicKey.trim(), 5, 5) : "—"}
               </code>
             </div>
             <div className="mt-1.5 flex items-center justify-between text-xs">

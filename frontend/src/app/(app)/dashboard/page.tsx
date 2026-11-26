@@ -98,7 +98,7 @@ export default function DashboardPage() {
         <section className="surface overflow-hidden rounded-2xl">
           <div className="flex items-center justify-between px-5 py-4 sm:px-6">
             <div>
-              <h2 className="font-display text-lg font-semibold tracking-tight">Recent tasks</h2>
+              <h2 className="font-serif text-2xl font-normal tracking-normal">Recent tasks</h2>
               <p className="text-xs text-cloud/45">Latest activity across the marketplace</p>
             </div>
             <Button asChild variant="ghost" size="sm">
@@ -194,7 +194,7 @@ export default function DashboardPage() {
         <section className="surface rounded-2xl">
           <div className="flex items-center justify-between px-5 py-4">
             <div>
-              <h2 className="font-display text-lg font-semibold tracking-tight">Agents</h2>
+              <h2 className="font-serif text-2xl font-normal tracking-normal">Agents</h2>
               <p className="text-xs text-cloud/45">Live wallet balances</p>
             </div>
             <Button asChild variant="ghost" size="sm">

@@ -3,7 +3,7 @@
 Next.js 14 (App Router) + TypeScript + Tailwind + shadcn/ui, with React Query and Axios.
 
 ```bash
-cp .env.example .env.local   # NEXT_PUBLIC_API_URL defaults to http://localhost:3001
+cp .env.example .env.local   # set NEXT_PUBLIC_API_URL (local dev falls back to http://localhost:3001)
 npm install
 npm run dev                  # http://localhost:3000
 ```

@@ -54,7 +54,7 @@ export function EmptyState({
       <div className="mb-5 grid h-12 w-12 place-items-center rounded-2xl bg-sun/10 text-sun [&_svg]:h-5 [&_svg]:w-5">
         {icon}
       </div>
-      <p className="font-display text-lg font-semibold tracking-tight">{title}</p>
+      <p className="font-serif text-2xl font-normal tracking-normal">{title}</p>
       {description && <p className="mt-1.5 max-w-sm text-sm text-cloud/55">{description}</p>}
       {action && <div className="mt-6">{action}</div>}
     </div>

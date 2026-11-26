@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ArrowRight, ExternalLink, Loader2, RotateCw, Search, Wallet } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { KeyDisplay } from "@/components/key-display";
@@ -18,14 +18,26 @@ export default function WalletPage() {
   const [input, setInput] = useState("");
   const [lookup, setLookup] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const { data, isLoading, isFetching, isError, error, refetch, dataUpdatedAt } = useWalletBalance(lookup);
 
   const valid = isStellarPublicKey(input);
+  const empty = !input.trim();
+  const inputError = !touched
+    ? null
+    : empty
+      ? "Enter a public key to look up"
+      : !valid
+        ? "That doesn't look like a Stellar public key (56 characters, starts with G)."
+        : null;
 
   function check(pk: string) {
     setInput(pk);
     setTouched(true);
-    if (!isStellarPublicKey(pk)) return;
+    if (!isStellarPublicKey(pk)) {
+      inputRef.current?.focus();
+      return;
+    }
     if (pk.trim() === lookup) refetch();
     setLookup(pk.trim());
   }
@@ -52,24 +64,28 @@ export default function WalletPage() {
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-cloud/35" />
             <Input
+              ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Paste a public key — G…"
               spellCheck={false}
               autoComplete="off"
-              aria-invalid={touched && !!input && !valid}
+              aria-invalid={!!inputError}
+              aria-describedby={inputError ? "wallet-key-error" : undefined}
               aria-label="Stellar public key"
               className="h-14 border-transparent bg-transparent pl-11 font-mono text-sm hover:border-transparent focus-visible:border-transparent focus-visible:bg-transparent focus-visible:ring-0"
             />
           </div>
-          <Button type="submit" size="xl" disabled={!input.trim() || (isFetching && lookup === input.trim())}>
+          <Button type="submit" size="xl" disabled={isFetching && lookup === input.trim()}>
             {isFetching && lookup === input.trim() ? <Loader2 className="animate-spin" /> : <ArrowRight />}
             Check balance
           </Button>
         </div>
       </form>
-      {touched && input && !valid && (
-        <p className="mt-2 px-1 text-xs text-red-300">That doesn&apos;t look like a Stellar public key (56 characters, starts with G).</p>
+      {inputError && (
+        <p id="wallet-key-error" role="alert" className="mt-2 px-1 text-xs text-red-300">
+          {inputError}
+        </p>
       )}
 
       {agents.length > 0 && (
@@ -98,7 +114,7 @@ export default function WalletPage() {
             <div className="grid h-14 w-14 place-items-center rounded-2xl bg-sun/10 text-sun">
               <Wallet className="h-6 w-6" />
             </div>
-            <p className="mt-5 font-display text-lg font-semibold">No account selected</p>
+            <p className="mt-5 font-serif text-2xl">No account selected</p>
             <p className="mt-1.5 max-w-sm text-sm text-cloud/50">
               Enter a public key above to fetch its balances from <code className="font-mono">/api/payments/balance</code>.
             </p>
@@ -147,7 +163,7 @@ export default function WalletPage() {
             {/* Asset list */}
             <section className="surface rounded-3xl p-6">
               <div className="flex items-baseline justify-between">
-                <h2 className="font-display text-lg font-semibold tracking-tight">Assets</h2>
+                <h2 className="font-serif text-2xl font-normal tracking-normal">Assets</h2>
                 <span className="font-mono text-xs text-cloud/40">{data?.length ?? 0}</span>
               </div>
               {isLoading ? (

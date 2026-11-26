@@ -189,10 +189,10 @@ function ResultCard({ agent, onReset }: { agent: CreatedAgent; onReset: () => vo
         <div className="flex items-center gap-4 border-b border-cloud/10 p-5 sm:p-6">
           <AgentAvatar name={agent.name} publicKey={agent.publicKey} className="h-14 w-14 text-lg" />
           <div className="min-w-0">
-            <h2 className="truncate font-display text-xl font-semibold tracking-tight">{agent.name}</h2>
+            <h2 className="truncate font-serif text-2xl font-normal tracking-normal">{agent.name}</h2>
             <p className="text-sm text-cloud/50">{agentTypeLabel(agent.agentType)}</p>
           </div>
-          <span className="ml-auto rounded-full bg-emerald-400/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-emerald-300">
+          <span className="ml-auto rounded-full bg-teal/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-teal">
             Active
           </span>
         </div>
