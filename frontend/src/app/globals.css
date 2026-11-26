@@ -3,38 +3,38 @@
 @tailwind utilities;
 
 /*
- * SynthPay palette
- *   Deep Graphite   #1C1D20  -> 225 7% 12%
- *   Soft Cloud      #F2F4F1  -> 100 12% 95%
- *   Sunshine Yellow #FFC928  -> 45 100% 58%
- * Everything else is one of these three at a different opacity.
+ * SynthPay palette (matches the coin-stream hero)
+ *   Deep space   #060B0A  -> 165 29% 3%
+ *   Warm cream   #F3ECD8  -> 44 53% 90%
+ *   Soft gold    #FFD36B  -> 42 100% 71%
+ *   Teal light   #5FE3C8  -> 168 70% 63%
  */
 @layer base {
   :root {
-    --background: 225 7% 12%;
-    --foreground: 100 12% 95%;
+    --background: 165 29% 3%;
+    --foreground: 44 53% 90%;
 
-    --card: 225 7% 12%;
-    --card-foreground: 100 12% 95%;
-    --popover: 225 7% 14%;
-    --popover-foreground: 100 12% 95%;
+    --card: 165 29% 3%;
+    --card-foreground: 44 53% 90%;
+    --popover: 166 28% 6%;
+    --popover-foreground: 44 53% 90%;
 
-    --primary: 45 100% 58%;
-    --primary-foreground: 225 7% 12%;
+    --primary: 42 100% 71%;
+    --primary-foreground: 165 29% 3%;
 
-    --secondary: 100 12% 95%;
-    --secondary-foreground: 100 12% 95%;
-    --muted: 100 12% 95%;
-    --muted-foreground: 100 6% 62%;
-    --accent: 45 100% 58%;
-    --accent-foreground: 225 7% 12%;
+    --secondary: 44 53% 90%;
+    --secondary-foreground: 44 53% 90%;
+    --muted: 44 53% 90%;
+    --muted-foreground: 40 12% 62%;
+    --accent: 42 100% 71%;
+    --accent-foreground: 165 29% 3%;
 
     --destructive: 0 78% 63%;
-    --destructive-foreground: 100 12% 95%;
+    --destructive-foreground: 44 53% 90%;
 
-    --border: 100 12% 95%;
-    --input: 100 12% 95%;
-    --ring: 45 100% 58%;
+    --border: 44 53% 90%;
+    --input: 44 53% 90%;
+    --ring: 42 100% 71%;
 
     --radius: 0.75rem;
     color-scheme: dark;
@@ -53,14 +53,14 @@
   }
 
   ::selection {
-    background: rgba(255, 201, 40, 0.35);
-    color: #f2f4f1;
+    background: rgba(255, 211, 107, 0.35);
+    color: #f3ecd8;
   }
 
   /* Thin, quiet scrollbars */
   * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(242, 244, 241, 0.14) transparent;
+    scrollbar-color: rgba(243, 236, 216, 0.14) transparent;
   }
 
   input[type="number"]::-webkit-inner-spin-button,
@@ -73,8 +73,46 @@
 @layer components {
   /* The one card surface used across the app */
   .surface {
-    background: rgba(242, 244, 241, 0.06);
-    border: 1px solid rgba(242, 244, 241, 0.1);
+    background: linear-gradient(160deg, rgba(243, 236, 216, 0.065), rgba(243, 236, 216, 0.025));
+    border: 1px solid rgba(243, 236, 216, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  /* Ambient backdrop for app pages: the hero's teal light and a few stars. */
+  .space-backdrop {
+    background:
+      radial-gradient(40% 50% at 92% -5%, rgba(95, 227, 200, 0.16) 0%, transparent 70%),
+      radial-gradient(30% 35% at 100% 30%, rgba(30, 110, 98, 0.18) 0%, transparent 75%),
+      radial-gradient(35% 30% at 10% 105%, rgba(255, 211, 107, 0.06) 0%, transparent 70%),
+      #060b0a;
+  }
+  .starfield::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: 0.5;
+    background-image:
+      radial-gradient(1px 1px at 12% 18%, rgba(243, 236, 216, 0.8), transparent 60%),
+      radial-gradient(1px 1px at 68% 9%, rgba(243, 236, 216, 0.7), transparent 60%),
+      radial-gradient(1.5px 1.5px at 84% 42%, rgba(243, 236, 216, 0.6), transparent 60%),
+      radial-gradient(1px 1px at 36% 64%, rgba(243, 236, 216, 0.5), transparent 60%),
+      radial-gradient(1px 1px at 52% 31%, rgba(243, 236, 216, 0.6), transparent 60%),
+      radial-gradient(1.5px 1.5px at 22% 86%, rgba(243, 236, 216, 0.5), transparent 60%),
+      radial-gradient(1px 1px at 91% 77%, rgba(243, 236, 216, 0.6), transparent 60%),
+      radial-gradient(1px 1px at 6% 47%, rgba(243, 236, 216, 0.5), transparent 60%);
+    background-size: 420px 420px;
+  }
+
+  /* Cream pill with a warm glow: the hero's call to action. */
+  .glow-pill {
+    background: #f5e7bf;
+    color: #141310;
+    box-shadow: 0 0 40px 4px rgba(255, 210, 110, 0.22), inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+  }
+  .glow-pill:hover {
+    background: #fff1cc;
+    box-shadow: 0 0 60px 10px rgba(255, 210, 110, 0.34), inset 0 -2px 0 rgba(0, 0, 0, 0.12);
   }
 
   .eyebrow {
@@ -88,9 +126,9 @@
   .skeleton {
     background: linear-gradient(
       90deg,
-      rgba(242, 244, 241, 0.05) 0%,
-      rgba(242, 244, 241, 0.11) 50%,
-      rgba(242, 244, 241, 0.05) 100%
+      rgba(243, 236, 216, 0.05) 0%,
+      rgba(243, 236, 216, 0.11) 50%,
+      rgba(243, 236, 216, 0.05) 100%
     );
     background-size: 200% 100%;
     @apply animate-shimmer rounded-md;
@@ -105,7 +143,7 @@
     transition: opacity 0.3s ease;
     background: radial-gradient(
       420px circle at var(--gx, 50%) var(--gy, 50%),
-      rgba(255, 201, 40, 0.13),
+      rgba(255, 211, 107, 0.13),
       transparent 45%
     );
   }
@@ -116,10 +154,10 @@
     background: conic-gradient(
       from var(--angle),
       transparent 0deg,
-      rgba(255, 201, 40, 0.9) 50deg,
+      rgba(255, 211, 107, 0.9) 50deg,
       transparent 110deg,
       transparent 200deg,
-      rgba(242, 244, 241, 0.35) 250deg,
+      rgba(243, 236, 216, 0.35) 250deg,
       transparent 300deg
     );
     -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
@@ -138,7 +176,7 @@
     pointer-events: none;
     background: radial-gradient(
       260px circle at var(--gx, 50%) var(--gy, 50%),
-      rgba(255, 201, 40, 0.85),
+      rgba(255, 211, 107, 0.85),
       transparent 60%
     );
     -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
@@ -164,24 +202,24 @@
 
   /* Frosted glass chip used over the 3D scene */
   .glass {
-    background: linear-gradient(135deg, rgba(242, 244, 241, 0.1), rgba(242, 244, 241, 0.03));
-    border: 1px solid rgba(242, 244, 241, 0.14);
+    background: linear-gradient(135deg, rgba(243, 236, 216, 0.1), rgba(243, 236, 216, 0.03));
+    border: 1px solid rgba(243, 236, 216, 0.14);
     backdrop-filter: blur(14px) saturate(140%);
     -webkit-backdrop-filter: blur(14px) saturate(140%);
-    box-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(242, 244, 241, 0.08);
+    box-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(243, 236, 216, 0.08);
   }
 
   /* Gradient-stroke text for display headings */
   .text-sheen {
-    background: linear-gradient(180deg, #f2f4f1 30%, rgba(242, 244, 241, 0.55) 100%);
+    background: linear-gradient(180deg, #f2f4f1 30%, rgba(243, 236, 216, 0.55) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
 
   .bg-grid {
-    background-image: linear-gradient(rgba(242, 244, 241, 0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(242, 244, 241, 0.05) 1px, transparent 1px);
+    background-image: linear-gradient(rgba(243, 236, 216, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(243, 236, 216, 0.05) 1px, transparent 1px);
     background-size: 56px 56px;
   }
 

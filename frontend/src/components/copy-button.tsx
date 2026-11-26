@@ -39,7 +39,7 @@ export function CopyButton({
       title={label}
       className={cn(
         "inline-flex shrink-0 items-center gap-1.5 rounded-md p-1.5 text-cloud/50 transition hover:bg-sun/10 hover:text-sun focus:outline-none focus-visible:ring-2 focus-visible:ring-sun/60",
-        copied && "text-emerald-300 hover:text-emerald-300",
+        copied && "text-teal hover:text-teal",
         showLabel && "px-2.5 text-xs font-medium",
         className,
       )}

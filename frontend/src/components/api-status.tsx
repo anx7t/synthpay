@@ -19,12 +19,12 @@ export function ApiStatus({ compact = false }: { compact?: boolean }) {
     >
       <span className="relative flex h-2 w-2">
         {state === "online" && (
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal opacity-60" />
         )}
         <span
           className={cn(
             "relative inline-flex h-2 w-2 rounded-full",
-            state === "online" && "bg-emerald-400",
+            state === "online" && "bg-teal",
             state === "offline" && "bg-red-400",
             state === "checking" && "bg-cloud/40",
           )}

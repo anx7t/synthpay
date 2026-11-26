@@ -18,7 +18,7 @@ export function LifecycleBar({ status, className }: { status: Task["status"]; cl
           className={cn(
             "h-1 flex-1 rounded-full transition-colors",
             i < idx && "bg-cloud/40",
-            i === idx && (status === "paid" ? "bg-emerald-400" : "bg-sun"),
+            i === idx && (status === "paid" ? "bg-teal" : "bg-sun"),
             i > idx && "bg-cloud/10",
           )}
         />
@@ -46,7 +46,7 @@ export function TaskCard({ task }: { task: Task }) {
       </div>
 
       <div className="mt-4 min-w-0">
-        <h3 className="font-display text-lg font-semibold leading-snug tracking-tight">
+        <h3 className="font-serif text-[22px] font-normal leading-tight tracking-normal">
           <Link href={`/tasks/${encodeURIComponent(task.id)}`} className="transition hover:text-sun">
             {task.title}
           </Link>
@@ -109,7 +109,7 @@ export function TaskCard({ task }: { task: Task }) {
               href={explorerTxUrl(task.txHash)}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex min-w-0 items-center gap-2 text-xs text-emerald-300 transition hover:text-sun"
+              className="inline-flex min-w-0 items-center gap-2 text-xs text-teal transition hover:text-sun"
             >
               <span className="text-cloud/40">tx</span>
               <code className="truncate font-mono">{truncateKey(task.txHash, 8, 8)}</code>
@@ -121,7 +121,7 @@ export function TaskCard({ task }: { task: Task }) {
               )}
             </a>
           ) : (
-            <span className="text-xs text-emerald-300">Settled on Stellar</span>
+            <span className="text-xs text-teal">Settled on Stellar</span>
           )
         ) : (
           <span className="text-xs text-cloud/40">Next step</span>

@@ -34,7 +34,7 @@ export default function LandingPage() {
         {/* Keep the copy legible where it overlaps the coins on small screens. */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(3,6,5,0.85)_0%,rgba(3,6,5,0.45)_45%,transparent_75%)] lg:bg-[linear-gradient(90deg,rgba(3,6,5,0.55)_0%,transparent_45%)]"
+          className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(3,6,5,0.9)_0%,rgba(3,6,5,0.7)_55%,rgba(3,6,5,0.15)_100%)] lg:bg-[linear-gradient(90deg,rgba(3,6,5,0.55)_0%,transparent_45%)]"
         />
         <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-40 bg-gradient-to-b from-transparent to-graphite" />
 
@@ -43,7 +43,7 @@ export default function LandingPage() {
             <Logo />
             <nav className="hidden items-center gap-7 md:flex">
               {NAV.map((n) => (
-                <Link key={n.href} href={n.href} className="font-serif text-[17px] text-[#efe6cf]/70 transition hover:text-[#efe6cf]">
+                <Link key={n.href} href={n.href} className="font-serif text-[17px] text-cloud/70 transition hover:text-cloud">
                   {n.label}
                 </Link>
               ))}
@@ -51,7 +51,7 @@ export default function LandingPage() {
           </div>
           <Link
             href="/dashboard"
-            className="inline-flex h-10 items-center gap-1.5 rounded-full border border-[#efe6cf]/20 bg-[#efe6cf]/[0.06] px-5 text-sm text-[#efe6cf] backdrop-blur-md transition hover:border-[#efe6cf]/40 hover:bg-[#efe6cf]/10"
+            className="inline-flex h-10 items-center gap-1.5 rounded-full border border-cloud/20 bg-cloud/[0.06] px-5 text-sm text-cloud backdrop-blur-md transition hover:border-cloud/40 hover:bg-cloud/10"
           >
             Open app <ArrowUpRight className="h-4 w-4" />
           </Link>
@@ -59,14 +59,14 @@ export default function LandingPage() {
 
         <div className="mx-auto flex w-full max-w-7xl flex-1 items-center px-4 py-16 sm:px-8">
           <div className="max-w-2xl">
-            <h1 className="animate-fade-up font-serif text-[clamp(3.4rem,8vw,7.25rem)] leading-[0.95] tracking-[-0.02em] text-[#f3ecd8] [text-shadow:0_2px_30px_rgba(0,0,0,0.5)]">
+            <h1 className="animate-fade-up font-serif text-[clamp(3.4rem,8vw,7.25rem)] leading-[0.95] tracking-[-0.02em] text-cloud [text-shadow:0_2px_30px_rgba(0,0,0,0.5)]">
               AI agents
               <br />
-              that <em className="text-[#ffd76a]">earn.</em>
+              that <em className="text-sun">earn.</em>
             </h1>
 
             <p
-              className="mt-7 max-w-md animate-fade-up text-lg leading-relaxed text-[#efe6cf]/65"
+              className="mt-7 max-w-md animate-fade-up text-lg leading-relaxed text-cloud/65"
               style={{ animationDelay: "120ms" }}
             >
               Post a task, let an agent do it, and pay only when the work checks out. Every payout settles on Stellar.
@@ -75,14 +75,14 @@ export default function LandingPage() {
             <div className="mt-10 flex animate-fade-up flex-wrap items-center gap-x-7 gap-y-4" style={{ animationDelay: "220ms" }}>
               <Link
                 href="/dashboard"
-                className="group relative inline-flex h-14 items-center gap-2 rounded-full bg-[#f5e7bf] px-8 font-serif text-xl text-[#141310] shadow-[0_0_50px_6px_rgba(255,210,110,0.28),inset_0_-2px_0_rgba(0,0,0,0.12)] transition duration-300 hover:-translate-y-0.5 hover:bg-[#fff1cc] hover:shadow-[0_0_70px_14px_rgba(255,210,110,0.4),inset_0_-2px_0_rgba(0,0,0,0.12)]"
+                className="glow-pill group relative inline-flex h-14 items-center gap-2 rounded-full px-8 font-serif text-xl transition duration-300 hover:-translate-y-0.5"
               >
                 Launch dashboard
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
               <Link
                 href="/agents/create"
-                className="group inline-flex items-center gap-1.5 font-serif text-xl text-[#efe6cf]/80 transition hover:text-[#efe6cf]"
+                className="group inline-flex items-center gap-1.5 font-serif text-xl text-cloud/80 transition hover:text-cloud"
               >
                 Create an agent
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -93,7 +93,7 @@ export default function LandingPage() {
 
         {/* Work that agents get paid for */}
         <div className="mx-auto w-full max-w-7xl px-4 pb-10 sm:px-8">
-          <p className="font-serif text-sm text-[#efe6cf]/45">
+          <p className="font-serif text-sm text-cloud/45">
             Settled on Stellar {STELLAR_NETWORK} · work agents get paid for
           </p>
           <div
@@ -105,7 +105,7 @@ export default function LandingPage() {
           >
             <div className="flex w-max animate-marquee gap-10 group-hover:[animation-play-state:paused]">
               {[...WORK, ...WORK].map(({ icon: Icon, label }, i) => (
-                <span key={i} className="flex items-center gap-2.5 whitespace-nowrap font-serif text-2xl text-[#efe6cf]/60">
+                <span key={i} className="flex items-center gap-2.5 whitespace-nowrap font-serif text-2xl text-cloud/60">
                   <Icon className="h-5 w-5" strokeWidth={1.5} />
                   {label}
                 </span>

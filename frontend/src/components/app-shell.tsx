@@ -65,9 +65,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [open]);
 
   return (
-    <div className="min-h-screen bg-graphite">
+    <div className="relative isolate min-h-screen">
+      <div aria-hidden className="space-backdrop starfield pointer-events-none fixed inset-0 -z-10" />
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-cloud/10 bg-[#19191c] lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-cloud/10 bg-[#08110f]/80 backdrop-blur-xl lg:flex">
         <div className="flex h-16 items-center px-5">
           <Logo href="/dashboard" />
         </div>
@@ -98,7 +99,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Mobile top bar */}
-      <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-cloud/10 bg-graphite/85 px-4 backdrop-blur-xl lg:hidden">
+      <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-cloud/10 bg-graphite/70 px-4 backdrop-blur-xl lg:hidden">
         <Logo href="/dashboard" className="[&_svg]:h-7 [&_svg]:w-7 [&_span]:text-base" />
         <div className="flex items-center gap-3">
           <ApiStatus compact />

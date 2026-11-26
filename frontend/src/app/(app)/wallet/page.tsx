@@ -114,7 +114,7 @@ export default function WalletPage() {
             <div className="grid h-14 w-14 place-items-center rounded-2xl bg-sun/10 text-sun">
               <Wallet className="h-6 w-6" />
             </div>
-            <p className="mt-5 font-display text-lg font-semibold">No account selected</p>
+            <p className="mt-5 font-serif text-2xl">No account selected</p>
             <p className="mt-1.5 max-w-sm text-sm text-cloud/50">
               Enter a public key above to fetch its balances from <code className="font-mono">/api/payments/balance</code>.
             </p>
@@ -163,7 +163,7 @@ export default function WalletPage() {
             {/* Asset list */}
             <section className="surface rounded-3xl p-6">
               <div className="flex items-baseline justify-between">
-                <h2 className="font-display text-lg font-semibold tracking-tight">Assets</h2>
+                <h2 className="font-serif text-2xl font-normal tracking-normal">Assets</h2>
                 <span className="font-mono text-xs text-cloud/40">{data?.length ?? 0}</span>
               </div>
               {isLoading ? (

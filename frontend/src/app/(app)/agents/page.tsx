@@ -117,7 +117,7 @@ export default function AgentsPage() {
           {registered.length > 0 && (
             <section>
               <div className="mb-4 flex items-baseline justify-between">
-                <h2 className="font-display text-lg font-semibold tracking-tight">Registered agents</h2>
+                <h2 className="font-serif text-2xl font-normal tracking-normal">Registered agents</h2>
                 <span className="font-mono text-xs text-cloud/40">{registered.length}</span>
               </div>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -139,7 +139,7 @@ export default function AgentsPage() {
             <section>
               <div className="mb-4 flex items-baseline justify-between">
                 <div>
-                  <h2 className="font-display text-lg font-semibold tracking-tight">Tracked wallets</h2>
+                  <h2 className="font-serif text-2xl font-normal tracking-normal">Tracked wallets</h2>
                   <p className="text-xs text-cloud/45">Added in this browser; not returned by the API</p>
                 </div>
                 <span className="font-mono text-xs text-cloud/40">{tracked.length}</span>
@@ -156,7 +156,7 @@ export default function AgentsPage() {
             <section>
               <div className="mb-4 flex items-baseline justify-between">
                 <div>
-                  <h2 className="font-display text-lg font-semibold tracking-tight">Seen on tasks</h2>
+                  <h2 className="font-serif text-2xl font-normal tracking-normal">Seen on tasks</h2>
                   <p className="text-xs text-cloud/45">Assigned to tasks but not registered</p>
                 </div>
                 <span className="font-mono text-xs text-cloud/40">{discovered.length}</span>

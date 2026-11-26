@@ -8,10 +8,11 @@ const config: Config = {
     container: { center: true, padding: "1rem", screens: { "2xl": "1400px" } },
     extend: {
       colors: {
-        // Brand palette — the only three colors in the system.
-        graphite: "#1C1D20",
-        cloud: "#F2F4F1",
-        sun: "#FFC928",
+        // Brand palette: deep space, warm cream, soft gold, and the teal of the hero's light.
+        graphite: "#060B0A",
+        cloud: "#F3ECD8",
+        sun: "#FFD36B",
+        teal: "#5FE3C8",
 
         // shadcn/ui tokens, mapped onto the brand palette.
         border: "hsl(var(--border) / <alpha-value>)",
@@ -76,6 +77,12 @@ const config: Config = {
           to: { opacity: "1", transform: "translateY(0)" },
         },
         shimmer: { from: { backgroundPosition: "200% 0" }, to: { backgroundPosition: "-200% 0" } },
+        "coin-rise": {
+          "0%": { transform: "translateY(0) rotateX(55deg) rotateZ(0deg)", opacity: "0" },
+          "12%": { opacity: "0.95" },
+          "85%": { opacity: "0.85" },
+          "100%": { transform: "translateY(-520px) rotateX(55deg) rotateZ(220deg)", opacity: "0" },
+        },
         marquee: { from: { transform: "translateX(0)" }, to: { transform: "translateX(-50%)" } },
         ticker: { from: { transform: "translateX(0)" }, to: { transform: "translateX(-50%)" } },
         bob: {

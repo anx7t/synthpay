@@ -84,7 +84,8 @@ const backdropFrag = /* glsl */ `
     vec3 col = vec3(0.012, 0.022, 0.02);
 
     // Light shaft: a soft diagonal beam coming down from the top right.
-    vec2 c = vec2(mix(0.18, 0.36, uWide) * uAspect, 0.02);
+    // Wide: right of the headline. Narrow: hugging the right edge, behind the coins.
+    vec2 c = vec2(mix(0.46, 0.36, uWide) * uAspect, mix(0.12, 0.02, uWide));
     vec2 dir = normalize(vec2(0.55, 1.0));
     vec2 q = p - c;
     float along = dot(q, dir);
@@ -96,9 +97,10 @@ const backdropFrag = /* glsl */ `
     vec3 teal = vec3(0.04, 0.32, 0.3);
     vec3 mint = vec3(0.36, 0.78, 0.66);
     vec3 lime = vec3(0.78, 0.92, 0.55);
-    col += teal * beam * 1.15;
-    col += mint * core * 0.55;
-    col += lime * exp(-dot(q - dir * 0.75, q - dir * 0.75) * 9.0) * 0.35;
+    float k = mix(0.6, 1.0, uWide);
+    col += teal * beam * 1.15 * k;
+    col += mint * core * 0.55 * k;
+    col += lime * exp(-dot(q - dir * 0.75, q - dir * 0.75) * 9.0) * 0.35 * k;
 
     // Slow breathing so the light feels alive.
     col *= 0.92 + 0.08 * sin(uTime * 0.4);
@@ -301,7 +303,7 @@ function makeSeed(i: number, round = 0): Seed {
 function CoinStream({ interaction }: { interaction: React.MutableRefObject<Interaction> }) {
   const { size, viewport, camera } = useThree();
   const wide = size.width >= 1024;
-  const count = wide ? 34 : 22;
+  const count = wide ? 34 : 16;
 
   const mesh = useRef<THREE.InstancedMesh>(null);
   const tex = useCoinTextures();
@@ -375,11 +377,11 @@ function CoinStream({ interaction }: { interaction: React.MutableRefObject<Inter
     // The band: a gentle curve from below the fold up past the top right.
     const W = viewport.width;
     const H = viewport.height;
-    const cx = wide ? W * 0.27 : W * 0.18;
+    const cx = wide ? W * 0.27 : W * 0.42;
     const p0x = cx - W * 0.14, p0y = -H * 0.5 - 2.2;
     const p1x = cx - W * 0.07, p1y = 0;
     const p2x = cx + W * 0.2, p2y = H * 0.5 + 2.2;
-    const bandWidth = wide ? 1.9 : 1.4;
+    const bandWidth = wide ? 1.9 : 1.1;
 
     // Pointer in world space at z = 0.
     const px = pointer.x * (W / 2);
@@ -433,7 +435,7 @@ function CoinStream({ interaction }: { interaction: React.MutableRefObject<Inter
 
       // Grow in at the bottom, fade by shrinking past the top edge.
       const edge = Math.min(1, t * 8, (1 - t) * 10);
-      dummy.scale.setScalar(c.scale * (0.6 + 0.4 * edge));
+      dummy.scale.setScalar(c.scale * (wide ? 1 : 0.7) * (0.6 + 0.4 * edge));
       dummy.updateMatrix();
       m.setMatrixAt(i, dummy.matrix);
     }

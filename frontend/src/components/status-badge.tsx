@@ -6,7 +6,7 @@ export const STATUS_META: Record<TaskStatus, { label: string; className: string;
   assigned: { label: "Assigned", className: "border-sky-400/30 bg-sky-400/10 text-sky-300", dot: "bg-sky-400" },
   submitted: { label: "Submitted", className: "border-sun/40 bg-sun/10 text-sun", dot: "bg-sun" },
   verified: { label: "Verified", className: "border-green-400/30 bg-green-400/10 text-green-300", dot: "bg-green-400" },
-  paid: { label: "Paid", className: "border-emerald-400/40 bg-emerald-500/15 text-emerald-300", dot: "bg-emerald-400" },
+  paid: { label: "Paid", className: "border-teal/40 bg-teal/15 text-teal", dot: "bg-teal" },
 };
 
 export function StatusBadge({ status, className }: { status: TaskStatus; className?: string }) {

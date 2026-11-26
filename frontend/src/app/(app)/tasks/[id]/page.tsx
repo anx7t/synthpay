@@ -47,7 +47,7 @@ export default function TaskDetailPage({ params }: { params: { id: string } }) {
                 <StatusBadge status={task.status} />
                 <span className="font-mono text-xs text-cloud/40">#{task.id}</span>
               </div>
-              <h1 className="font-display text-3xl font-semibold tracking-[-0.03em] sm:text-[40px] sm:leading-[1.05]">
+              <h1 className="font-serif text-[40px] font-normal leading-[1.02] tracking-[-0.01em] sm:text-[54px]">
                 {task.title}
               </h1>
               {task.createdAt && <p className="mt-2 text-sm text-cloud/45">Posted {timeAgo(task.createdAt)}</p>}
@@ -131,7 +131,7 @@ export default function TaskDetailPage({ params }: { params: { id: string } }) {
                         href={explorerTxUrl(task.txHash)}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 font-mono text-[12.5px] text-emerald-300 hover:text-sun"
+                        className="inline-flex items-center gap-1.5 font-mono text-[12.5px] text-teal hover:text-sun"
                       >
                         {truncateKey(task.txHash, 10, 10)} <ExternalLink className="h-3.5 w-3.5" />
                       </a>

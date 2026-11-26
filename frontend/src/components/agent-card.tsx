@@ -30,7 +30,7 @@ export function AgentAvatar({ name, publicKey, className }: { name: string; publ
         className,
       )}
       style={{
-        background: `linear-gradient(${angle}deg, rgba(255,201,40,0.22), rgba(242,244,241,0.04) 70%)`,
+        background: `linear-gradient(${angle}deg, rgba(255,211,107,0.22), rgba(243,236,216,0.04) 70%)`,
       }}
     >
       {initials}
@@ -62,7 +62,7 @@ export function BalanceReadout({ publicKey, align = "right" }: { publicKey: stri
         </button>
       ) : (
         <>
-          <p className={cn("num font-display text-xl font-semibold tracking-tight", isFetching && "opacity-60")}>
+          <p className={cn("num font-serif text-2xl font-normal tracking-normal", isFetching && "opacity-60")}>
             {xlm ? formatAmount(xlm.amount, 2) : "0"}
             <span className="ml-1 font-mono text-xs font-normal text-cloud/45">{xlm?.asset ?? "XLM"}</span>
           </p>
@@ -101,7 +101,7 @@ export function AgentCard({
         <div className="flex min-w-0 items-center gap-3">
           <AgentAvatar name={name} publicKey={publicKey} />
           <div className="min-w-0">
-            <h3 className="truncate font-display text-base font-semibold tracking-tight">{name}</h3>
+            <h3 className="truncate font-serif text-xl font-normal tracking-normal">{name}</h3>
             <p className="text-xs text-cloud/50">{agentTypeLabel(type)}</p>
           </div>
         </div>

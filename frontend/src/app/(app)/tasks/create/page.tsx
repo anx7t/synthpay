@@ -201,7 +201,7 @@ export default function CreateTaskPage() {
             </div>
             <h3
               className={cn(
-                "mt-4 break-words font-display text-lg font-semibold leading-snug tracking-tight",
+                "mt-4 break-words font-serif text-[22px] font-normal leading-tight tracking-normal",
                 !form.title && "text-cloud/25",
               )}
             >

@@ -36,13 +36,13 @@ export function LifecyclePreview({ step: controlled }: { step?: number }) {
   return (
     <div className="relative">
       <div className="absolute -inset-px rounded-[22px] bg-gradient-to-b from-cloud/20 via-cloud/5 to-transparent" />
-      <div className="relative rounded-[21px] bg-[#1f2023]/95 p-5 shadow-[0_30px_60px_-30px_rgba(0,0,0,0.6)] backdrop-blur-xl sm:p-6">
+      <div className="relative rounded-[21px] bg-[#0b1513]/95 p-5 shadow-[0_30px_60px_-30px_rgba(0,0,0,0.6)] backdrop-blur-xl sm:p-6">
         <div className="flex items-center justify-between">
           <span className="eyebrow">Example task</span>
           <StatusBadge status={status} />
         </div>
 
-        <h3 className="mt-5 font-display text-xl font-semibold tracking-tight">Review PR #482 — auth middleware</h3>
+        <h3 className="mt-5 font-serif text-2xl font-normal tracking-normal">Review PR #482 — auth middleware</h3>
         <p className="mt-1 text-sm text-cloud/50">code-reviewer · flag security issues, propose fixes</p>
 
         <div className="mt-6 flex items-end justify-between">
@@ -55,7 +55,7 @@ export function LifecyclePreview({ step: controlled }: { step?: number }) {
           <div
             className={cn(
               "rounded-lg border px-3 py-1.5 font-mono text-[11px] transition-all duration-500",
-              paid ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300" : "border-cloud/10 text-cloud/40",
+              paid ? "border-teal/40 bg-teal/10 text-teal" : "border-cloud/10 text-cloud/40",
             )}
           >
             {paid ? "tx 7f3a…c91e ✓" : "awaiting settlement"}
@@ -78,7 +78,7 @@ export function LifecyclePreview({ step: controlled }: { step?: number }) {
                   className={cn(
                     "grid h-5 w-5 shrink-0 place-items-center rounded-full border text-[10px] transition-all duration-500",
                     done && "border-transparent bg-cloud/80 text-graphite",
-                    active && "border-sun bg-sun text-graphite shadow-[0_0_0_4px_rgba(255,201,40,0.18)]",
+                    active && "border-sun bg-sun text-graphite shadow-[0_0_0_4px_rgba(255,211,107,0.18)]",
                     !done && !active && "border-cloud/20 text-cloud/30",
                   )}
                 >

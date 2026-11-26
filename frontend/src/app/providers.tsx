@@ -22,7 +22,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         position="bottom-right"
         toastOptions={{
           classNames: {
-            toast: "!bg-[#25262a] !border !border-cloud/10 !text-cloud !rounded-xl !font-sans",
+            toast: "!bg-[#0d1916] !border !border-cloud/10 !text-cloud !rounded-xl !font-sans",
             description: "!text-cloud/60",
             success: "[&_[data-icon]]:!text-sun",
             error: "[&_[data-icon]]:!text-red-400",

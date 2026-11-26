@@ -40,7 +40,7 @@ const SelectContent = React.forwardRef<
       ref={ref}
       position={position}
       className={cn(
-        "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-xl border border-cloud/10 bg-[#25262a] text-cloud shadow-[0_20px_60px_-15px_rgba(0,0,0,0.7)]",
+        "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-xl border border-cloud/10 bg-[#0d1916] text-cloud shadow-[0_20px_60px_-15px_rgba(0,0,0,0.7)]",
         "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
         position === "popper" && "w-full min-w-[var(--radix-select-trigger-width)] data-[side=bottom]:translate-y-1.5",
         className,
