@@ -1,13 +1,31 @@
 const express = require('express');
 const router = express.Router();
+const { z } = require('zod');
 const { sendPayment, getBalance } = require('../stellar/wallet');
 const supabase = require('../db/supabase');
+const { broadcastTaskUpdate } = require('../db/supabase');
+const { requireAuth } = require('../middleware/auth');
 
-/**
- * Mark a task paid and store the transaction hash. Falls back to updating only
- * the status if the `tx_hash` column hasn't been added yet (see
- * db/migrations/001_add_tx_hash.sql).
- */
+// ── Schemas ───────────────────────────────────────────────────────────────────
+
+const releaseSchema = z.object({
+  senderSecret: z.string().min(1, 'senderSecret is required'),
+  receiverPublicKey: z.string().min(1, 'receiverPublicKey is required'),
+  amount: z.coerce.number().positive('amount must be a positive number'),
+  taskId: z.union([z.string(), z.number()]).optional().nullable(),
+  asset: z.enum(['XLM', 'USDC']).default('XLM'),
+});
+
+function validate(schema, body) {
+  const result = schema.safeParse(body);
+  if (!result.success) {
+    return { error: result.error.errors.map(e => e.message).join(', ') };
+  }
+  return { data: result.data };
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
 async function markPaid(taskId, txHash) {
   let { data, error } = await supabase
     .from('tasks')
@@ -27,33 +45,27 @@ async function markPaid(taskId, txHash) {
   return { data, error };
 }
 
-// POST /api/payments/release
-// Body: { senderSecret, receiverPublicKey, amount, taskId? }
-//
-// With `taskId`, the payment is tied to a task:
-//   - the task must be `verified` and assigned to `receiverPublicKey`
-//   - `amount` must equal the task's reward
-//   - the task is locked (status `paying`) before any money moves, so two
-//     concurrent requests can't pay it twice
-//   - on success the task becomes `paid` with its `tx_hash`
-// Without `taskId` it behaves exactly as before (plain payment).
-router.post('/release', async (req, res) => {
-  const { senderSecret, receiverPublicKey, amount, taskId } = req.body;
-  if (!senderSecret || !receiverPublicKey || !amount) {
-    return res.status(400).json({ error: 'senderSecret, receiverPublicKey, amount required' });
-  }
+// ── Routes ────────────────────────────────────────────────────────────────────
 
-  // Plain payment, not linked to a task.
-  if (taskId === undefined || taskId === null || taskId === '') {
+// POST /api/payments/release — requires auth when REQUIRE_AUTH=true
+router.post('/release', requireAuth, async (req, res) => {
+  const { error: validErr, data } = validate(releaseSchema, req.body);
+  if (validErr) return res.status(400).json({ error: validErr });
+
+  const { senderSecret, receiverPublicKey, amount, taskId, asset } = data;
+
+  // ── Plain payment (no task linked) ──
+  if (!taskId) {
     try {
-      const result = await sendPayment(senderSecret, receiverPublicKey, amount);
+      const result = await sendPayment(senderSecret, receiverPublicKey, amount, { asset });
       return res.json({ success: true, txHash: result.txHash });
     } catch (err) {
       return res.status(500).json({ error: err.message });
     }
   }
 
-  // 1. Load and check the task.
+  // ── Task-linked payment ──
+
   const { data: task, error: loadError } = await supabase
     .from('tasks')
     .select('*')
@@ -62,6 +74,11 @@ router.post('/release', async (req, res) => {
 
   if (loadError || !task) return res.status(404).json({ error: 'Task not found' });
   if (task.status === 'paid') return res.status(409).json({ error: 'Task is already paid', task });
+  if (task.balance_id) {
+    return res.status(400).json({
+      error: 'This task uses on-chain escrow. Use POST /api/tasks/:id/claim instead.',
+    });
+  }
   if (task.status !== 'verified') {
     return res.status(409).json({ error: `Task must be verified before payment (current status: ${task.status})` });
   }
@@ -72,7 +89,6 @@ router.post('/release', async (req, res) => {
     return res.status(400).json({ error: `amount must equal the task reward (${task.reward})` });
   }
 
-  // 2. Lock it: only one request can move verified -> paying.
   const { data: locked, error: lockError } = await supabase
     .from('tasks')
     .update({ status: 'paying' })
@@ -85,16 +101,17 @@ router.post('/release', async (req, res) => {
     return res.status(409).json({ error: 'Payment for this task is already in progress' });
   }
 
-  // 3. Send the payment; unlock if it fails.
   let result;
   try {
-    result = await sendPayment(senderSecret, receiverPublicKey, amount);
+    result = await sendPayment(senderSecret, receiverPublicKey, amount, {
+      taskId,
+      asset: task.asset || asset,
+    });
   } catch (err) {
     await supabase.from('tasks').update({ status: 'verified' }).eq('id', taskId);
     return res.status(500).json({ error: err.message });
   }
 
-  // 4. Record it. The money has already moved, so report success either way.
   const { data: paidTask, error: paidError } = await markPaid(taskId, result.txHash);
   if (paidError) {
     return res.json({
@@ -104,11 +121,11 @@ router.post('/release', async (req, res) => {
     });
   }
 
+  broadcastTaskUpdate(paidTask);
   res.json({ success: true, txHash: result.txHash, task: paidTask });
 });
 
 // GET /api/payments/balance/:publicKey
-// Frontend: show wallet balance for any address
 router.get('/balance/:publicKey', async (req, res) => {
   try {
     const balances = await getBalance(req.params.publicKey);
