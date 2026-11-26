@@ -3,14 +3,14 @@
 import { useRef } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { LifecyclePreview, useLifecycleStep } from "@/components/lifecycle-preview";
 import { TiltCard } from "@/components/tilt-card";
 import { TASK_STATUSES } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { PayoutFlow, useLifecycleStep } from "./payout-flow";
 import { Reveal, useInView } from "./reveal";
 
 /* -------------------------------------------------------------------------- */
-/*  Lifecycle: a progress rail in sync with the animated example card        */
+/*  Lifecycle: a progress rail in sync with the payout animation        */
 /* -------------------------------------------------------------------------- */
 
 export function LifecycleSection() {
@@ -81,10 +81,7 @@ export function LifecycleSection() {
       </div>
 
       <Reveal delay={150}>
-        <div className="relative">
-          <div aria-hidden className="absolute -inset-10 -z-10 rounded-full bg-teal/[0.07] blur-3xl" />
-          <LifecyclePreview step={step} />
-        </div>
+        <PayoutFlow step={step} />
       </Reveal>
     </section>
   );
